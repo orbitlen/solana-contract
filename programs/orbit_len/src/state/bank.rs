@@ -4,7 +4,7 @@ use std::cmp::{ max, min };
 use anchor_spl::token_interface::*;
 
 #[account(zero_copy(unsafe))]
-#[derive(Debug, PartialEq, Eq, Default)]
+#[derive(Debug, PartialEq, Eq, Default, InitSpace)]
 pub struct Bank {
     pub mint: Pubkey,
     pub mint_decimals: u8,
@@ -16,10 +16,6 @@ pub struct Bank {
     pub liquidity_vault: Pubkey,
     pub liquidity_vault_bump: u8,
     pub liquidity_vault_authority_bump: u8,
-
-    pub insurance_vault: Pubkey,
-    pub insurance_vault_bump: u8,
-    pub insurance_vault_authority_bump: u8,
 
     pub total_liability_shares: i128,
     pub total_asset_shares: i128,
@@ -36,11 +32,8 @@ impl Bank {
         config: BankConfig,
         current_timestamp: i64,
         liquidity_vault: Pubkey,
-        insurance_vault: Pubkey,
         liquidity_vault_bump: u8,
         liquidity_vault_authority_bump: u8,
-        insurance_vault_bump: u8,
-        insurance_vault_authority_bump: u8
     ) -> Bank {
         Bank {
             mint,
@@ -50,9 +43,6 @@ impl Bank {
             liquidity_vault,
             liquidity_vault_bump,
             liquidity_vault_authority_bump,
-            insurance_vault,
-            insurance_vault_bump,
-            insurance_vault_authority_bump,
             total_liability_shares: 0,
             total_asset_shares: 0,
             last_update: current_timestamp,
@@ -280,35 +270,16 @@ fn calc_accrued_interest_payment_per_period(
 }
 
 #[zero_copy(unsafe)]
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, InitSpace, Default)]
 pub struct BankConfig {
-    pub asset_weight_init: i128,
-    pub asset_weight_maint: i128,
-
-    pub liability_weight_init: i128,
-    pub liability_weight_maint: i128,
-
     pub interest_rate_config: InterestRateConfig,
     pub oracle_key: Pubkey,
-}
-
-impl Default for BankConfig {
-    fn default() -> Self {
-        Self {
-            asset_weight_init: 0,
-            asset_weight_maint: 0,
-            liability_weight_init: 0,
-            liability_weight_maint: 0,
-            interest_rate_config: Default::default(),
-            oracle_key: Pubkey::default(),
-        }
-    }
 }
 
 impl BankConfig {}
 
 #[zero_copy(unsafe)]
-#[derive(PartialEq, Eq, Default, Debug)]
+#[derive(PartialEq, Eq, Default, Debug, InitSpace)]
 pub struct InterestRateConfig {
     pub optimal_utilization_rate: i128,
     pub plateau_interest_rate: i128,
@@ -344,10 +315,6 @@ impl InterestRateConfig {
 
 #[derive(PartialEq, Eq, AnchorDeserialize, AnchorSerialize, Debug)]
 pub struct BankConfigCompact {
-    pub asset_weight_init: i128,
-    pub asset_weight_maint: i128,
-    pub liability_weight_init: i128,
-    pub liability_weight_maint: i128,
     pub interest_rate_config: InterestRateConfigCompact,
     pub oracle_key: Pubkey,
 }
@@ -355,10 +322,6 @@ pub struct BankConfigCompact {
 impl From<BankConfigCompact> for BankConfig {
     fn from(config: BankConfigCompact) -> Self {
         Self {
-            asset_weight_init: config.asset_weight_init,
-            asset_weight_maint: config.asset_weight_maint,
-            liability_weight_init: config.liability_weight_init,
-            liability_weight_maint: config.liability_weight_maint,
             interest_rate_config: config.interest_rate_config.into(),
             oracle_key: config.oracle_key,
         }
@@ -377,7 +340,7 @@ impl From<InterestRateConfigCompact> for InterestRateConfig {
         InterestRateConfig {
             optimal_utilization_rate: ir_config.optimal_utilization_rate,
             plateau_interest_rate: ir_config.plateau_interest_rate,
-            max_interest_rate: ir_config.max_interest_rate
+            max_interest_rate: ir_config.max_interest_rate,
         }
     }
 }
@@ -388,6 +351,18 @@ pub struct BankAccountWrapper<'a> {
 }
 
 impl<'a> BankAccountWrapper<'a> {
+    pub fn find(
+        bank_pk: &Pubkey,
+        bank: &'a mut Bank,
+        lending_account: &'a mut LendingAccount
+    ) -> Result<BankAccountWrapper<'a>> {
+        let balance = lending_account.balances
+            .iter_mut()
+            .find(|balance| balance.bank_pk.eq(bank_pk))
+            .ok_or_else(|| error!(OrbitlenError::BankAccountNotFound))?;
+
+        Ok(Self { balance, bank })
+    }
     pub fn find_or_create(
         bank_pk: &Pubkey,
         bank: &'a mut Bank,
@@ -425,6 +400,10 @@ impl<'a> BankAccountWrapper<'a> {
         }
     }
 
+    pub fn withdraw(&mut self, amount: i128) -> Result<()> {
+        self.decrease_balance_internal(amount)
+    }
+
     pub fn deposit(&mut self, amount: i128) -> Result<()> {
         self.increase_balance_internal(amount)
     }
@@ -459,8 +438,20 @@ impl<'a> BankAccountWrapper<'a> {
         Ok(())
     }
 
+    pub fn decrease_balance_in_liquidation(&mut self, amount: i128) -> Result<()> {
+        self.decrease_balance_internal(amount)
+    }
+
+    pub fn increase_balance(&mut self, amount: i128) -> Result<()> {
+        self.increase_balance_internal(amount)
+    }
+
     pub fn borrow(&mut self, amount: i128) -> Result<()> {
         self.decrease_balance_internal(amount)
+    }
+
+    pub fn increase_balance_in_liquidation(&mut self, amount: i128) -> Result<()> {
+        self.increase_balance_internal(amount)
     }
 
     fn decrease_balance_internal(&mut self, balance_delta: i128) -> Result<()> {

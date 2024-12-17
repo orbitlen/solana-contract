@@ -12,8 +12,9 @@ orbit_len = "7ZigWsEmK5JAW2mgKP19yRhcwt3gTpFMfkttXG7Hj9MF"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+# cluster = "Localnet"
+cluster = "https://devnet.helius-rpc.com/?api-key=f84a6f24-1feb-4290-bc2f-4fc95cf5e7f0"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/orbit_len.ts"

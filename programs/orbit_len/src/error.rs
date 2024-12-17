@@ -16,4 +16,10 @@ pub enum OrbitlenError {
     BankAccountNotFound,
     #[msg("Invalid bank utilization ratio")]
     IllegalUtilizationRatio,
+    #[msg("Illegal liquidation")]
+    IllegalLiquidation,
+    #[msg("fetch price failed")]
+    FetchPriceFailed,
+    #[msg("Invalid price feed pubkey")]
+    InvalidPriceFeedPk
 }

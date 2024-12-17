@@ -4,7 +4,7 @@ use anchor_spl::token_interface::TokenInterface;
 use solana_program::clock::Clock;
 use solana_program::sysvar::Sysvar;
 
-pub fn lending_account_deposit<'info>(
+pub fn lending_account_deposit_process<'info>(
     mut ctx: Context<'_, '_, 'info, 'info, LendingAccountDeposit<'info>>,
     amount: u64
 ) -> Result<()> {
@@ -89,8 +89,6 @@ pub struct LendingAccountDeposit<'info> {
         bump = bank.load()?.liquidity_vault_bump,
     )]
     pub bank_liquidity_vault: AccountInfo<'info>,
-
     pub token_program: Interface<'info, TokenInterface>,
-
     pub system_program: Program<'info, System>,
 }

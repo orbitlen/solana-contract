@@ -20,7 +20,7 @@ pub mod orbit_len {
     use super::*;
 
     pub fn initialize_account<'info>(
-        ctx: Context<'_, '_, 'info, 'info, OrbitlenAccountInitialize<'info>>,
+        ctx: Context<'_, '_, 'info, 'info, OrbitlenAccountInitialize<'info>>
     ) -> Result<()> {
         initialize_account_process(ctx)
     }
@@ -36,17 +36,24 @@ pub mod orbit_len {
         ctx: Context<'_, '_, 'info, 'info, LendingAccountDeposit<'info>>,
         amount: u64
     ) -> Result<()> {
-        instructions::deposit::lending_account_deposit(ctx, amount)
+        lending_account_deposit_process(ctx, amount)
     }
 
     pub fn lending_pool_add_bank(
         ctx: Context<LendingPoolAddBank>,
         bank_config: BankConfigCompact
     ) -> Result<()> {
-        instructions::add_pool::lending_pool_add_bank(ctx, bank_config.into())
+        lending_pool_add_bank_process(ctx, bank_config.into())
     }
 
     pub fn initial_vault(ctx: Context<InitialVault>, bank: Pubkey) -> Result<()> {
-        instructions::add_pool::initial_vault(ctx, bank)
+        initial_vault_process(ctx, bank)
+    }
+
+    pub fn lending_account_liquidate<'info>(
+        ctx: Context<'_, '_, 'info, 'info, LendingAccountLiquidate<'info>>,
+        asset_amount: u64
+    ) -> Result<()> {
+        lending_account_liquidate_process(ctx, asset_amount)
     }
 }

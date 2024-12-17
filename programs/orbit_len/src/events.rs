@@ -1,6 +1,27 @@
 use anchor_lang::prelude::*;
 
 
+#[event]
+pub struct LendingAccountLiquidateEvent {
+    pub header: AccountEventHeader,
+    pub liquidatee_orbitlen_account: Pubkey,
+    pub liquidatee_orbitlen_account_authority: Pubkey,
+    pub asset_bank: Pubkey,
+    pub asset_mint: Pubkey,
+    pub liability_bank: Pubkey,
+    pub liability_mint: Pubkey,
+    pub pre_balances: LiquidationBalances,
+    pub post_balances: LiquidationBalances,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct LiquidationBalances {
+    pub liquidatee_asset_balance: f64,
+    pub liquidatee_liability_balance: f64,
+    pub liquidator_asset_balance: f64,
+    pub liquidator_liability_balance: f64,
+}
+
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct AccountEventHeader {
     pub signer: Pubkey,

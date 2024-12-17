@@ -12,6 +12,15 @@ impl OrbitlenAccount {
     pub fn initialize(&mut self, authority: Pubkey) {
         self.authority = authority;
     }
+
+    pub fn get_remaining_accounts_len(&self) -> usize {
+        self.lending_account
+            .balances
+            .iter()
+            .filter(|b|  b.bank_pk != Pubkey::default())
+            .count()
+            * 2
+    }
 }
 
 const MAX_LENDING_ACCOUNT_BALANCES: usize = 3;
