@@ -47,7 +47,7 @@ pub fn lending_account_liquidate_process<'info>(
             let oracle_ais = &ctx.remaining_accounts[0..1];
             fetch_feed_price(&oracle_ais[0], &asset_bank.config)?
         };
-
+        // WIF / USD 2.8
         msg!("asset_price: {}", asset_price);
 
         let mut liab_bank = ctx.accounts.liab_bank.load_mut()?;
@@ -55,6 +55,7 @@ pub fn lending_account_liquidate_process<'info>(
             let oracle_ais = &ctx.remaining_accounts[1..2];
             fetch_feed_price(&oracle_ais[0], &liab_bank.config)?
         };
+        // AAPL / USD 250
 
         msg!("liab_price: {}", liab_price);
 
@@ -79,7 +80,7 @@ pub fn lending_account_liquidate_process<'info>(
                 bank_account.balance.liability_shares.into()
             )?;
 
-            bank_account.decrease_balance_in_liquidation(liab_amount as i128)?;
+            bank_account.decrease_balance_in_liquidation(liab_amount)?;
 
             let post_balance = bank_account.bank.get_liability_amount(
                 bank_account.balance.liability_shares.into()
@@ -87,6 +88,12 @@ pub fn lending_account_liquidate_process<'info>(
 
             (pre_balance, post_balance)
         };
+
+        msg!(
+            "liquidator_liability_pre_balance: {}, liquidator_liability_post_balance: {}",
+            liquidator_liability_pre_balance,
+            liquidator_liability_post_balance
+        );
 
         // Liquidatee pays off `asset_quantity` amount of collateral
         let (liquidatee_asset_pre_balance, liquidatee_asset_post_balance) = {
@@ -100,7 +107,7 @@ pub fn lending_account_liquidate_process<'info>(
                 bank_account.balance.asset_shares.into()
             )?;
 
-            bank_account.withdraw(asset_amount as i128)?;
+            bank_account.withdraw(asset_amount)?;
 
             let post_balance = bank_account.bank.get_asset_amount(
                 bank_account.balance.asset_shares.into()
@@ -108,6 +115,12 @@ pub fn lending_account_liquidate_process<'info>(
 
             (pre_balance, post_balance)
         };
+
+        msg!(
+            "liquidatee_asset_pre_balance: {}, liquidatee_asset_post_balance: {}",
+            liquidatee_asset_pre_balance,
+            liquidatee_asset_post_balance
+        );
 
         // Liquidator receives `asset_quantity` amount of collateral
         let (liquidator_asset_pre_balance, liquidator_asset_post_balance) = {
@@ -121,7 +134,7 @@ pub fn lending_account_liquidate_process<'info>(
                 bank_account.balance.asset_shares.into()
             )?;
 
-            bank_account.increase_balance_in_liquidation(asset_amount as i128)?;
+            bank_account.increase_balance_in_liquidation(asset_amount)?;
 
             let post_balance = bank_account.bank.get_asset_amount(
                 bank_account.balance.asset_shares.into()
@@ -129,6 +142,12 @@ pub fn lending_account_liquidate_process<'info>(
 
             (pre_balance, post_balance)
         };
+
+        msg!(
+            "liquidator_asset_pre_balance: {}, liquidator_asset_post_balance: {}",
+            liquidator_asset_pre_balance,
+            liquidator_asset_post_balance
+        );
         // Liquidatee receives liability payment
         let (liquidatee_liability_pre_balance, liquidatee_liability_post_balance) = {
             let mut liquidatee_liab_bank_account = BankAccountWrapper::find_or_create(
@@ -142,7 +161,7 @@ pub fn lending_account_liquidate_process<'info>(
                     liquidatee_liab_bank_account.balance.liability_shares.into()
                 )?;
 
-            liquidatee_liab_bank_account.increase_balance(liab_amount as i128)?;
+            liquidatee_liab_bank_account.increase_balance(liab_amount)?;
 
             let liquidatee_liability_post_balance =
                 liquidatee_liab_bank_account.bank.get_liability_amount(
@@ -150,6 +169,11 @@ pub fn lending_account_liquidate_process<'info>(
                 )?;
             (liquidatee_liability_pre_balance, liquidatee_liability_post_balance)
         };
+        msg!(
+            "liquidatee_liability_pre_balance: {}, liquidatee_liability_post_balance: {}",
+            liquidatee_liability_pre_balance,
+            liquidatee_liability_post_balance
+        );
 
         (
             LiquidationBalances {

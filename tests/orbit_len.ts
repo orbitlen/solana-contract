@@ -1,7 +1,13 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { OrbitLen } from "../target/types/orbit_len";
-import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import {
+  Keypair,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  Transaction,
+  sendAndConfirmTransaction,
+} from "@solana/web3.js";
 import {
   mintTo,
   createMint,
@@ -14,83 +20,241 @@ import {
   createAccount,
 } from "@solana/spl-token";
 import { delay, safeAirdrop } from "./utils";
+import {
+  getKeypairFromEnvironment,
+  makeKeypairs,
+} from "@solana-developers/helpers";
+import { it } from "mocha";
+import * as dotenv from "dotenv";
 import { log } from "console";
-
+dotenv.config();
+//**
+// devnet:
+// admin: J1fS6hqK9fLezuGfc2BUCTAoXpKDEL5UNpeoDenscizK, userA: 51X3SJJXPgQQtAWXq8juDVcFdauuo9tNs3Ux5dLpBunY, userB: FefN4V9GnLaNvgBSonxgkEsWy4Z97e8Y35jVw6SWYYzU
+// AAPLMint: 7CtTWGmysW2RDNFLbdU13hfBMVkV9XFkd2xX5nHGe1V7, WIFMint: Dtq1VCyJgYiRfruo91EpkPL1HNuQUCGm7dkrxt3YkXBQ
+// AAPLBank: 2KNir3jskbH6PYEYE2ib1vsVEF5TmRwc5a4XC3v4kWTv, WIFBank: HiUPShvuUpGhyDPSkbASswGffcDYNTqczUXowivA7xqU
+// AAPLLiquidityVaultAuthority: 8mFxPGTn7voiw24HiCjvxGrM7adgvCben97cNPvwFQGA, AAPLLiquidityVault: BKocEzGfB2VCAvuCY6k4Et2R4ZddDKW1gVFk5or9rK4a
+// WIFLiquidityVaultAuthority: 75TLjNQQEeds9M6Cz8QLNeG7GKBEoqsL37mtyxM8ZzX7, WIFLiquidityVault: F9J1ckFN2xXSf1xgVknomYafTGoLQtykBQYCwMRNYgN8
+// adminOrbitlenAccount: 8LHWQpQ3cmwGR3hFVWrqRZNr7Df2hjABmp14p3y7Yv7z
+// userAOrbitlenAccount: 5vMRUWAvhojMKdWAbrWhRDykfJ6tNy88A9goBcaCfQ82
+// userBOrbitlenAccount: Ao7FGEwMK46ACyzAXF5vHu3ijiUizsGEzncHDjYqFsiL
+// userAAAPL: 4szNuBQkjUBmdsDCCyDEhHvk1Bqi7HWvF7ZokL69bTsM, userAWIF: BS5ZLt5GCiu5dfaQxna1xPSA7fzoN593JK86wgify3Zn
+// userBAAPL: HYMreKT4fYk6Zjr6YutkdSHgFiK3Wdi94bTJYhnTcL8t, userBWIF: CM3FzZ5SXh5Q3nmaArYfXaVey7VuEwdr7rbFDGkqbbtq
+//  */
 describe("orbit_len", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const program = anchor.workspace.OrbitLen as Program<OrbitLen>;
-  let admin, user;
   const conn = anchor.getProvider().connection;
-  let ACTMint, bank;
-  let liquidityVaultAuthority,
-    liquidityVault,
-    insuranceVaultAuthority,
-    insuranceVault;
+  const LAMPORTS_PER_TOKEN = 1000000;
+  console.log("conn.rpcEndpoint", conn.rpcEndpoint);
+  let isLocal = conn.rpcEndpoint.includes("127.0.0.1");
 
-  let orbitlenAccount, userATA;
+  let admin, userA, userB;
+  let AAPLMint, WIFMint, AAPLBank, WIFBank;
+  let AAPLLiquidityVaultAuthority,
+    AAPLLiquidityVault,
+    WIFLiquidityVaultAuthority,
+    WIFLiquidityVault;
+  let adminOrbitlenAccount, userAOrbitlenAccount, userBOrbitlenAccount;
+  let userAAAPL, userAWIF, userBAAPL, userBWIF;
+
+  const AAPLMintOnDevnet = new PublicKey(
+    "7CtTWGmysW2RDNFLbdU13hfBMVkV9XFkd2xX5nHGe1V7"
+  );
+  const WIFMintOnDevnet = new PublicKey(
+    "Dtq1VCyJgYiRfruo91EpkPL1HNuQUCGm7dkrxt3YkXBQ"
+  );
+
+  const userAAAPLOnDevnt = new PublicKey(
+    "4szNuBQkjUBmdsDCCyDEhHvk1Bqi7HWvF7ZokL69bTsM"
+  );
+  const userAWIFOnDevnt = new PublicKey(
+    "BS5ZLt5GCiu5dfaQxna1xPSA7fzoN593JK86wgify3Zn"
+  );
+
+  const userBAAPLOnDevnt = new PublicKey(
+    "HYMreKT4fYk6Zjr6YutkdSHgFiK3Wdi94bTJYhnTcL8t"
+  );
+  const userBWIFOnDevnt = new PublicKey(
+    "CM3FzZ5SXh5Q3nmaArYfXaVey7VuEwdr7rbFDGkqbbtq"
+  );
+
+  const AAPLFeedDataPk = new PublicKey(
+    "DFYTBb8oPb3jk6vbQcmWux8UssHXsf8u2dkyVNct8yCX"
+  );
+  const WIFFeedDataPk = new PublicKey(
+    "2ffxPFJTGza5JSoheZYmTRmweRVyJi8Wn2ka4w5ksiAe"
+  );
 
   before(async () => {
-    admin = Keypair.generate();
-    user = Keypair.generate();
-    await safeAirdrop(admin.publicKey, conn);
-    await safeAirdrop(user.publicKey, conn);
-    await delay(2000);
+    console.log("program.programId", program.programId);
 
-    console.log(`admin: ${admin.publicKey}, user: ${user.publicKey}`);
+    // initialize mints
+    console.log("isLocal:", isLocal);
+    if (isLocal) {
+      [admin, userA, userB] = makeKeypairs(3);
+      await safeAirdrop(admin.publicKey, conn);
+      await safeAirdrop(userA.publicKey, conn);
+      await safeAirdrop(userB.publicKey, conn);
+      await delay(1000);
+    } else {
+      [admin, userA, userB] = await Promise.all([
+        getKeypairFromEnvironment("DEV_1"),
+        getKeypairFromEnvironment("DEV_2"),
+        getKeypairFromEnvironment("DEV_3"),
+      ]);
+    }
+    console.log(
+      `admin: ${admin.publicKey}, userA: ${userA.publicKey}, userB: ${userB.publicKey}`
+    );
 
-    ACTMint = await createMint(
+    if (isLocal) {
+      AAPLMint = await createMint(
+        conn,
+        admin,
+        admin.publicKey,
+        undefined,
+        6,
+        undefined,
+        undefined,
+        TOKEN_2022_PROGRAM_ID
+      );
+
+      WIFMint = await createMint(
+        conn,
+        admin,
+        admin.publicKey,
+        undefined,
+        6,
+        undefined,
+        undefined,
+        TOKEN_2022_PROGRAM_ID
+      );
+      console.log(`AAPL Mint: ${AAPLMint}, WIF Mint: ${WIFMint}`);
+    } else {
+      AAPLMint = AAPLMintOnDevnet;
+      WIFMint = WIFMintOnDevnet;
+    }
+
+    // fetch bank
+    [AAPLBank] = PublicKey.findProgramAddressSync(
+      [Buffer.from("bank"), AAPLMint.toBuffer()],
+      program.programId
+    );
+
+    [WIFBank] = PublicKey.findProgramAddressSync(
+      [Buffer.from("bank"), WIFMint.toBuffer()],
+      program.programId
+    );
+
+    console.log(`AAPLBank: ${AAPLBank}, WIFBank: ${WIFBank}`);
+
+    // fetch liquidity vault
+    [AAPLLiquidityVaultAuthority] = PublicKey.findProgramAddressSync(
+      [Buffer.from("liquidity_vault_auth"), AAPLBank.toBuffer()],
+      program.programId
+    );
+
+    [AAPLLiquidityVault] = PublicKey.findProgramAddressSync(
+      [Buffer.from("liquidity_vault"), AAPLBank.toBuffer()],
+      program.programId
+    );
+
+    console.log(
+      `AAPLLiquidityVaultAuthority: ${AAPLLiquidityVaultAuthority}, AAPLLiquidityVault: ${AAPLLiquidityVault}`
+    );
+
+    [WIFLiquidityVaultAuthority] = PublicKey.findProgramAddressSync(
+      [Buffer.from("liquidity_vault_auth"), WIFBank.toBuffer()],
+      program.programId
+    );
+
+    [WIFLiquidityVault] = PublicKey.findProgramAddressSync(
+      [Buffer.from("liquidity_vault"), WIFBank.toBuffer()],
+      program.programId
+    );
+
+    console.log(
+      `WIFLiquidityVaultAuthority: ${WIFLiquidityVaultAuthority}, WIFLiquidityVault: ${WIFLiquidityVault}`
+    );
+
+    // fetch orbitlen account
+    [adminOrbitlenAccount] = PublicKey.findProgramAddressSync(
+      [Buffer.from("orbitlen_account"), admin.publicKey.toBuffer()],
+      program.programId
+    );
+
+    [userAOrbitlenAccount] = PublicKey.findProgramAddressSync(
+      [Buffer.from("orbitlen_account"), userA.publicKey.toBuffer()],
+      program.programId
+    );
+
+    [userBOrbitlenAccount] = PublicKey.findProgramAddressSync(
+      [Buffer.from("orbitlen_account"), userB.publicKey.toBuffer()],
+      program.programId
+    );
+
+    console.log(`adminOrbitlenAccount: ${adminOrbitlenAccount}`);
+    console.log(`userAOrbitlenAccount: ${userAOrbitlenAccount}`);
+    console.log(`userBOrbitlenAccount: ${userBOrbitlenAccount}`);
+  });
+
+  it("initialize ATAs and mint tokens", async () => {
+    // initialize associated token accounts
+    userAAAPL = await createAccount(
       conn,
-      admin,
-      admin.publicKey,
-      undefined,
-      6,
+      userA,
+      AAPLMint,
+      userA.publicKey,
       undefined,
       undefined,
       TOKEN_2022_PROGRAM_ID
     );
 
-    console.log(`ACTMint: ${ACTMint}`);
-
-    bank = Keypair.generate();
-
-    console.log(`bank: ${bank.publicKey}`);
-
-    [liquidityVaultAuthority] = PublicKey.findProgramAddressSync(
-      [Buffer.from("liquidity_vault_auth"), bank.publicKey.toBuffer()],
-      program.programId
-    );
-
-    [liquidityVault] = PublicKey.findProgramAddressSync(
-      [Buffer.from("liquidity_vault"), bank.publicKey.toBuffer()],
-      program.programId
-    );
-
-    console.log(`liquidityVault: ${liquidityVault}`);
-
-    [insuranceVaultAuthority] = PublicKey.findProgramAddressSync(
-      [Buffer.from("insurance_vault_auth"), bank.publicKey.toBuffer()],
-      program.programId
-    );
-
-    [insuranceVault] = PublicKey.findProgramAddressSync(
-      [Buffer.from("insurance_vault"), bank.publicKey.toBuffer()],
-      program.programId
-    );
-
-    [orbitlenAccount] = PublicKey.findProgramAddressSync(
-      [Buffer.from("orbitlen_account"), user.publicKey.toBuffer()],
-      program.programId
-    );
-
-    console.log(`orbitlenAccount: ${orbitlenAccount}`);
-
-    userATA = await createAccount(
+    userAWIF = await createAccount(
       conn,
-      user,
-      ACTMint,
-      user.publicKey,
+      userA,
+      WIFMint,
+      userA.publicKey,
+      undefined,
+      undefined,
+      TOKEN_2022_PROGRAM_ID
+    );
+
+    console.log(`userAAAPL: ${userAAAPL}, userAWIF: ${userAWIF}`);
+
+    userBAAPL = await createAccount(
+      conn,
+      userB,
+      AAPLMint,
+      userB.publicKey,
+      undefined,
+      undefined,
+      TOKEN_2022_PROGRAM_ID
+    );
+
+    userBWIF = await createAccount(
+      conn,
+      userB,
+      WIFMint,
+      userB.publicKey,
+      undefined,
+      undefined,
+      TOKEN_2022_PROGRAM_ID
+    );
+
+    console.log(`userBAAPL: ${userBAAPL}, userBWIF: ${userBWIF}`);
+
+    // mint tokens
+    await mintTo(
+      conn,
+      userA,
+      AAPLMint,
+      isLocal ? userAAAPL : userAAAPLOnDevnt,
+      admin,
+      1000 * LAMPORTS_PER_TOKEN,
       undefined,
       undefined,
       TOKEN_2022_PROGRAM_ID
@@ -98,11 +262,35 @@ describe("orbit_len", () => {
 
     await mintTo(
       conn,
-      user,
-      ACTMint,
-      userATA,
+      userA,
+      WIFMint,
+      isLocal ? userAWIF : userAWIFOnDevnt,
       admin,
-      100 * LAMPORTS_PER_SOL,
+      1000 * LAMPORTS_PER_TOKEN,
+      undefined,
+      undefined,
+      TOKEN_2022_PROGRAM_ID
+    );
+
+    await mintTo(
+      conn,
+      userB,
+      AAPLMint,
+      isLocal ? userBAAPL : userBAAPLOnDevnt,
+      admin,
+      1000 * LAMPORTS_PER_TOKEN,
+      undefined,
+      undefined,
+      TOKEN_2022_PROGRAM_ID
+    );
+
+    await mintTo(
+      conn,
+      userB,
+      WIFMint,
+      isLocal ? userBWIF : userBWIFOnDevnt,
+      admin,
+      1000 * LAMPORTS_PER_TOKEN,
       undefined,
       undefined,
       TOKEN_2022_PROGRAM_ID
@@ -111,164 +299,380 @@ describe("orbit_len", () => {
 
   it("lending pool add bank", async () => {
     // params
-    let bankConfig = {
-      assetWeightInit: new anchor.BN(100),
-      assetWeightMaint: new anchor.BN(90),
-      liabilityWeightInit: new anchor.BN(100),
-      liabilityWeightMaint: new anchor.BN(110),
-      InterestRateConfig: {
-        OptimalUtilizationRate: new anchor.BN(0.8),
-        PlateauInterestRate: new anchor.BN(0.1),
-        MaxInterestRate: new anchor.BN(0.5),
+    let AAPLBankConfig = {
+      interestRateConfig: {
+        optimalUtilizationRate: new anchor.BN(80),
+        plateauInterestRate: new anchor.BN(10),
+        maxInterestRate: new anchor.BN(50),
       },
+      feedDataKey: AAPLFeedDataPk,
+    };
+    let WIFBankConfig = {
+      interestRateConfig: {
+        optimalUtilizationRate: new anchor.BN(80),
+        plateauInterestRate: new anchor.BN(10),
+        maxInterestRate: new anchor.BN(50),
+      },
+      feedDataKey: WIFFeedDataPk,
     };
     // accounts
-
+    // initialize AAPL vault and bank
     await program.methods
-      .initialVault(bank.publicKey)
+      .initialVault(AAPLBank)
       .accounts({
         admin: admin.publicKey,
-        bankMint: ACTMint,
-        liquidityVaultAuthority: liquidityVaultAuthority,
-        liquidityVault: liquidityVault,
-        insuranceVaultAuthority: insuranceVaultAuthority,
-        insuranceVault: insuranceVault,
+        bankMint: AAPLMint,
+        liquidityVaultAuthority: AAPLLiquidityVaultAuthority,
+        liquidityVault: AAPLLiquidityVault,
         tokenProgram: TOKEN_2022_PROGRAM_ID,
       })
       .signers([admin])
       .rpc();
 
     await program.methods
-      .lendingPoolAddBank(bankConfig)
+      .lendingPoolAddBank(AAPLBankConfig)
       .accounts({
         admin: admin.publicKey,
-        bankMint: ACTMint,
-        bank: bank.publicKey,
-        liquidityVaultAuthority: liquidityVaultAuthority,
-        liquidityVault: liquidityVault,
-        insuranceVaultAuthority: insuranceVaultAuthority,
-        insuranceVault: insuranceVault,
+        bankMint: AAPLMint,
+        bank: AAPLBank,
+        liquidityVaultAuthority: AAPLLiquidityVaultAuthority,
+        liquidityVault: AAPLLiquidityVault,
         tokenProgram: TOKEN_2022_PROGRAM_ID,
       })
-      .signers([admin, bank])
+      .signers([admin])
       .rpc();
 
-    const bankInfo = await program.account.bank.all();
-    console.log(bankInfo);
+    // initialize WIF vault and bank
+    await program.methods
+      .initialVault(WIFBank)
+      .accounts({
+        admin: admin.publicKey,
+        bankMint: WIFMint,
+        liquidityVaultAuthority: WIFLiquidityVaultAuthority,
+        liquidityVault: WIFLiquidityVault,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
+      })
+      .signers([admin])
+      .rpc();
+
+    await program.methods
+      .lendingPoolAddBank(WIFBankConfig)
+      .accounts({
+        admin: admin.publicKey,
+        bankMint: WIFMint,
+        bank: WIFBank,
+        liquidityVaultAuthority: WIFLiquidityVaultAuthority,
+        liquidityVault: WIFLiquidityVault,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
+      })
+      .signers([admin])
+      .rpc();
+
+    await delay(1000);
+    const bankInfos = await program.account.bank.fetchMultiple([
+      AAPLBank,
+      WIFBank,
+    ]);
+    console.log("AAPLBank:", JSON.stringify(bankInfos[0], null, 2));
+    console.log("WIFBank:", JSON.stringify(bankInfos[1], null, 2));
   });
 
-  it("lending account deposit", async () => {
-    const depositAmount = new anchor.BN(5 * LAMPORTS_PER_SOL);
-    let rm = [
-      {
-        pubkey: ACTMint,
-        isWritable: false,
-        isSigner: false,
-      },
-    ];
+  it("initialize orbitlen account", async () => {
+    await program.methods
+      .initializeAccount()
+      .accounts({
+        orbitlenAccount: userAOrbitlenAccount,
+        authority: userA.publicKey,
+      })
+      .signers([userA])
+      .rpc();
 
     await program.methods
       .initializeAccount()
       .accounts({
-        orbitlenAccount: orbitlenAccount,
-        authority: user.publicKey,
+        orbitlenAccount: userBOrbitlenAccount,
+        authority: userB.publicKey,
       })
-      .signers([user])
+      .signers([userB])
       .rpc();
 
-    console.log("initialize account");
+    await delay(1000);
+
+    let orbitlenAccountInfos =
+      await program.account.orbitlenAccount.fetchMultiple([
+        userAOrbitlenAccount,
+        userBOrbitlenAccount,
+      ]);
+    console.log(
+      "userAOrbitlenAccountInfo:",
+      JSON.stringify(orbitlenAccountInfos[0], null, 2)
+    );
+    console.log(
+      "userBOrbitlenAccountInfo:",
+      JSON.stringify(orbitlenAccountInfos[1], null, 2)
+    );
+  });
+
+  it("lending account deposit", async () => {
+    const depositAmount = new anchor.BN(50 * LAMPORTS_PER_TOKEN);
 
     await program.methods
       .lendingAccountDeposit(depositAmount)
       .accounts({
-        orbitlenAccount: orbitlenAccount,
-        signer: user.publicKey,
-        bank: bank.publicKey,
-        signerTokenAccount: userATA,
-        bankLiquidityVault: liquidityVault,
+        orbitlenAccount: userAOrbitlenAccount,
+        signer: userA.publicKey,
+        bank: AAPLBank,
+        signerTokenAccount: isLocal ? userAAAPL : userAAAPLOnDevnt,
+        bankLiquidityVault: AAPLLiquidityVault,
         tokenProgram: TOKEN_2022_PROGRAM_ID,
       })
-      .remainingAccounts(rm)
-      .signers([user])
+      .remainingAccounts([
+        {
+          pubkey: AAPLMint,
+          isWritable: false,
+          isSigner: false,
+        },
+      ])
+      .signers([userA])
       .rpc();
 
-    console.log("deposit done");
+    await program.methods
+      .lendingAccountDeposit(depositAmount)
+      .accounts({
+        orbitlenAccount: userAOrbitlenAccount,
+        signer: userA.publicKey,
+        bank: WIFBank,
+        signerTokenAccount: isLocal ? userAWIF : userAWIFOnDevnt,
+        bankLiquidityVault: WIFLiquidityVault,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
+      })
+      .remainingAccounts([
+        {
+          pubkey: WIFMint,
+          isWritable: false,
+          isSigner: false,
+        },
+      ])
+      .signers([userA])
+      .rpc();
 
-    let userInfo = await getAccount(
+    console.log("=== deposit ===");
+
+    let userAAAPLInfo = await getAccount(
       conn,
-      userATA,
+      userAAAPL,
       undefined,
       TOKEN_2022_PROGRAM_ID
     );
-    console.log("user info:", userInfo);
+    console.log("userAAAPLInfo:", userAAAPLInfo);
+
+    let AAPLLiquidityVaultInfo = await getAccount(
+      conn,
+      AAPLLiquidityVault,
+      undefined,
+      TOKEN_2022_PROGRAM_ID
+    );
+    console.log("AAPLLiquidityVaultInfo:", AAPLLiquidityVaultInfo);
+
+    await delay(1000);
+
+    let userAOrbitlenAccountInfo = await program.account.orbitlenAccount.fetch(
+      userAOrbitlenAccount
+    );
+    console.log(
+      "userAOrbitlenAccountInfo:",
+      JSON.stringify(userAOrbitlenAccountInfo, null, 2)
+    );
+
+    let AAPLBankInfo = await program.account.bank.fetch(AAPLBank);
+    console.log("AAPLBankInfo:", JSON.stringify(AAPLBankInfo, null, 2));
   });
 
   it("lending account borrow", async () => {
-    let borrower = Keypair.generate();
-    await safeAirdrop(borrower.publicKey, conn);
-    await delay(2000);
-
-    const borrowAmount = new anchor.BN(3 * LAMPORTS_PER_SOL);
-    let rm = [
-      {
-        pubkey: ACTMint,
-        isWritable: false,
-        isSigner: false,
-      },
-    ];
-
-    let [borrowerOrbitlenAccount] = PublicKey.findProgramAddressSync(
-      [Buffer.from("orbitlen_account"), borrower.publicKey.toBuffer()],
-      program.programId
-    );
-
-    await program.methods
-      .initializeAccount()
-      .accounts({
-        orbitlenAccount: borrowerOrbitlenAccount,
-        authority: borrower.publicKey,
-      })
-      .signers([borrower])
-      .rpc();
-
-    console.log("initialize account");
-
-    let borrowerATA = await createAccount(
-      conn,
-      borrower,
-      ACTMint,
-      borrower.publicKey,
-      undefined,
-      undefined,
-      TOKEN_2022_PROGRAM_ID
-    );
+    const borrowAmount = new anchor.BN(3 * LAMPORTS_PER_TOKEN);
+    const borrower = userB;
+    const borrowerOrbitlenAccount = userBOrbitlenAccount;
+    const borrowerWIF = userBWIF;
 
     await program.methods
       .lendingAccountBorrow(borrowAmount)
       .accounts({
         orbitlenAccount: borrowerOrbitlenAccount,
         signer: borrower.publicKey,
-        bank: bank.publicKey,
-        destinationTokenAccount: borrowerATA,
-        bankLiquidityVaultAuthority: liquidityVaultAuthority,
-        bankLiquidityVault: liquidityVault,
+        bank: WIFBank,
+        destinationTokenAccount: borrowerWIF,
+        bankLiquidityVaultAuthority: WIFLiquidityVaultAuthority,
+        bankLiquidityVault: WIFLiquidityVault,
         tokenProgram: TOKEN_2022_PROGRAM_ID,
       })
-      .remainingAccounts(rm)
+      .remainingAccounts([
+        {
+          pubkey: WIFMint,
+          isWritable: false,
+          isSigner: false,
+        },
+      ])
       .signers([borrower])
       .rpc();
 
-    console.log("borrow done");
-
-    let userInfo = await getAccount(
-      conn,
-      borrowerATA,
-      undefined,
-      TOKEN_2022_PROGRAM_ID
+    console.log("=== borrow ===");
+    let borrowerOrbitlenAccountInfo =
+      await program.account.orbitlenAccount.fetch(borrowerOrbitlenAccount);
+    console.log(
+      "borrowerOrbitlenAccountInfo:",
+      JSON.stringify(borrowerOrbitlenAccountInfo, null, 2)
     );
-    console.log("user info:", userInfo);
+    let WIFBankInfo = await program.account.bank.fetch(WIFBank);
+    console.log("WIFBankInfo:", JSON.stringify(WIFBankInfo, null, 2));
+  });
 
-    const orbitlenAccountAll = await program.account.orbitlenAccount.all();
-    console.log("orbitlenAccountAll", JSON.stringify(orbitlenAccountAll, null, 2));
+  it("lending account liquidate", async () => {
+    // WIF as asset、AAPL as liability
+    let liquidator = userA;
+    const liquidatorOrbitlenAccount = userAOrbitlenAccount;
+    const liquidatorWIF = isLocal ? userAWIF : userAWIFOnDevnt;
+    const liquidatorAAPL = isLocal ? userAAAPL : userAAAPLOnDevnt;
+
+    let liquidatee = userB;
+    const liquidateeOrbitlenAccount = userBOrbitlenAccount;
+    const liquidateeWIF = isLocal ? userBWIF : userBWIFOnDevnt;
+    const liquidateeAAPL = isLocal ? userBAAPL : userBAAPLOnDevnt;
+
+    // liquidator deposit 500 WIF and 500 AAPL, liquidatee borrow 5 AAPL and deposit 500 WIF
+    const depositAmount = new anchor.BN(500 * LAMPORTS_PER_TOKEN);
+    const borrowAmount = new anchor.BN(5 * LAMPORTS_PER_TOKEN);
+
+    await program.methods
+      .lendingAccountDeposit(depositAmount)
+      .accounts({
+        orbitlenAccount: liquidatorOrbitlenAccount,
+        signer: liquidator.publicKey,
+        bank: WIFBank,
+        signerTokenAccount: liquidatorWIF,
+        bankLiquidityVault: WIFLiquidityVault,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
+      })
+      .remainingAccounts([
+        {
+          pubkey: WIFMint,
+          isWritable: false,
+          isSigner: false,
+        },
+      ])
+      .signers([liquidator])
+      .rpc();
+
+    console.log(`liquidator deposit 500 WIF`);
+
+    await program.methods
+      .lendingAccountDeposit(depositAmount)
+      .accounts({
+        orbitlenAccount: liquidatorOrbitlenAccount,
+        signer: liquidator.publicKey,
+        bank: AAPLBank,
+        signerTokenAccount: liquidatorAAPL,
+        bankLiquidityVault: AAPLLiquidityVault,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
+      })
+      .remainingAccounts([
+        {
+          pubkey: AAPLMint,
+          isWritable: false,
+          isSigner: false,
+        },
+      ])
+      .signers([liquidator])
+      .rpc();
+
+    console.log(`liquidator deposit 500 AAPL`);
+
+    await program.methods
+      .lendingAccountDeposit(depositAmount)
+      .accounts({
+        orbitlenAccount: liquidateeOrbitlenAccount,
+        signer: liquidatee.publicKey,
+        bank: WIFBank,
+        signerTokenAccount: liquidateeWIF,
+        bankLiquidityVault: WIFLiquidityVault,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
+      })
+      .remainingAccounts([
+        {
+          pubkey: WIFMint,
+          isWritable: false,
+          isSigner: false,
+        },
+      ])
+      .signers([liquidatee])
+      .rpc();
+
+    console.log(`liquidatee deposit 1000 WIF`);
+
+    await program.methods
+      .lendingAccountBorrow(borrowAmount)
+      .accounts({
+        orbitlenAccount: liquidateeOrbitlenAccount,
+        signer: liquidatee.publicKey,
+        bank: AAPLBank,
+        destinationTokenAccount: liquidateeAAPL,
+        bankLiquidityVaultAuthority: AAPLLiquidityVaultAuthority,
+        bankLiquidityVault: AAPLLiquidityVault,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
+      })
+      .remainingAccounts([
+        {
+          pubkey: AAPLMint,
+          isWritable: false,
+          isSigner: false,
+        },
+      ])
+      .signers([liquidatee])
+      .rpc();
+
+    console.log(`liquidatee borrow 5 AAPL`);
+
+    // // WIF / USD 2.8
+    // // AAPL / USD 250
+    // // if pay off 2 AAPL then the liquidatee would send liquidator 179 WIF
+    const liquidateAmount = new anchor.BN(2 * LAMPORTS_PER_TOKEN);
+
+    await delay(5000);
+    await program.methods
+      .lendingAccountLiquidate(liquidateAmount)
+      .accounts({
+        assetBank: WIFBank,
+        liabBank: AAPLBank,
+        liquidatorOrbitlenAccount: liquidatorOrbitlenAccount,
+        signer: liquidator.publicKey,
+        liquidateeOrbitlenAccount: liquidateeOrbitlenAccount,
+      })
+      .remainingAccounts([
+        {
+          pubkey: WIFFeedDataPk,
+          isWritable: false,
+          isSigner: false,
+        },
+        {
+          pubkey: AAPLFeedDataPk,
+          isWritable: false,
+          isSigner: false,
+        },
+      ])
+      .signers([liquidator])
+      .rpc();
+
+    console.log("==== liquidator ===");
+    let liqInfos = await program.account.orbitlenAccount.fetchMultiple([
+      liquidatorOrbitlenAccount,
+      liquidateeOrbitlenAccount,
+    ]);
+    console.log("liquidatorInfo:", JSON.stringify(liqInfos[0], null, 2));
+    console.log("liquidateeInfo:", JSON.stringify(liqInfos[1], null, 2));
+    let bankInfos = await program.account.bank.fetchMultiple([
+      AAPLBank,
+      WIFBank,
+    ]);
+    console.log("AAPLBankInfo:", JSON.stringify(bankInfos[0], null, 2));
+    console.log("WIFBankInfo:", JSON.stringify(bankInfos[1], null, 2));
   });
 });

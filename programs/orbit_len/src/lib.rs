@@ -13,12 +13,23 @@ pub use state::*;
 pub use utils::*;
 pub use events::*;
 
-declare_id!("7ZigWsEmK5JAW2mgKP19yRhcwt3gTpFMfkttXG7Hj9MF");
+declare_id!("57FBXTUJZA8nxkdjyZPn2oBicQgeAZHFk7NmiKfmsZZY");
 
 #[program]
 pub mod orbit_len {
     use super::*;
 
+    // admin instructions
+    pub fn lending_pool_add_bank(
+        ctx: Context<LendingPoolAddBank>,
+        bank_config: BankConfigCompact
+    ) -> Result<()> {
+        lending_pool_add_bank_process(ctx, bank_config.into())
+    }
+    pub fn initial_vault(ctx: Context<InitialVault>, bank: Pubkey) -> Result<()> {
+        initial_vault_process(ctx, bank)
+    }
+    // user instructions
     pub fn initialize_account<'info>(
         ctx: Context<'_, '_, 'info, 'info, OrbitlenAccountInitialize<'info>>
     ) -> Result<()> {
@@ -37,17 +48,6 @@ pub mod orbit_len {
         amount: u64
     ) -> Result<()> {
         lending_account_deposit_process(ctx, amount)
-    }
-
-    pub fn lending_pool_add_bank(
-        ctx: Context<LendingPoolAddBank>,
-        bank_config: BankConfigCompact
-    ) -> Result<()> {
-        lending_pool_add_bank_process(ctx, bank_config.into())
-    }
-
-    pub fn initial_vault(ctx: Context<InitialVault>, bank: Pubkey) -> Result<()> {
-        initial_vault_process(ctx, bank)
     }
 
     pub fn lending_account_liquidate<'info>(

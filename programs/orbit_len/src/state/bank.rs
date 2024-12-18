@@ -1,24 +1,24 @@
 use anchor_lang::prelude::*;
 use crate::{ state::account::*, error::*, constants::* };
-use std::cmp::{ max, min };
+use std::{ cmp::{ max, min }, fmt::Debug };
 use anchor_spl::token_interface::*;
 
 #[account(zero_copy(unsafe))]
-#[derive(Debug, PartialEq, Eq, Default, InitSpace)]
+#[derive(Debug, PartialEq, Default, InitSpace)]
 pub struct Bank {
     pub mint: Pubkey,
     pub mint_decimals: u8,
 
-    pub asset_share_value: i128,
+    pub asset_share_value: u64,
 
-    pub liability_share_value: i128,
+    pub liability_share_value: u64,
 
     pub liquidity_vault: Pubkey,
     pub liquidity_vault_bump: u8,
     pub liquidity_vault_authority_bump: u8,
 
-    pub total_liability_shares: i128,
-    pub total_asset_shares: i128,
+    pub total_liability_shares: u64,
+    pub total_asset_shares: u64,
 
     pub last_update: i64,
 
@@ -33,7 +33,7 @@ impl Bank {
         current_timestamp: i64,
         liquidity_vault: Pubkey,
         liquidity_vault_bump: u8,
-        liquidity_vault_authority_bump: u8,
+        liquidity_vault_authority_bump: u8
     ) -> Bank {
         Bank {
             mint,
@@ -161,16 +161,18 @@ impl Bank {
         Ok(())
     }
 
-    pub fn get_liability_amount(&self, shares: i128) -> Result<i128> {
+    pub fn get_liability_amount(&self, shares: u64) -> Result<u64> {
         shares.checked_mul(self.liability_share_value.into()).ok_or(OrbitlenError::MathError.into())
     }
 
-    pub fn get_asset_amount(&self, shares: i128) -> Result<i128> {
-        shares.checked_mul(self.asset_share_value.into()).ok_or(OrbitlenError::MathError.into())
+    pub fn get_asset_amount(&self, shares: u64) -> Result<u64> {
+        shares.checked_mul(self.asset_share_value).ok_or(OrbitlenError::MathError.into())
     }
 
     pub fn accrue_interest(&mut self, current_timestamp: i64) -> Result<()> {
+        msg!("===accrue_interest===");
         let time_delta: u64 = (current_timestamp - self.last_update).try_into().unwrap();
+        msg!("time_delta: {}", time_delta);
 
         if time_delta == 0 {
             return Ok(());
@@ -181,9 +183,18 @@ impl Bank {
 
         self.last_update = current_timestamp;
 
+        msg!("total_assets: {}", total_assets);
+        msg!("total_liabilities: {}", total_liabilities);
         if total_assets == 0 || total_liabilities == 0 {
             return Ok(());
         }
+
+        let debug_self_asset_share_value = self.asset_share_value;
+        let debug_self_liability_share_value = self.liability_share_value;
+
+        msg!("asset_share_value: {}", debug_self_asset_share_value);
+        msg!("liability_share_value: {}", debug_self_liability_share_value);
+        msg!("interest_rate_config: {:?}", self.config.interest_rate_config);
 
         let (asset_share_value, liability_share_value) = calc_interest_rate_accrual_state_changes(
             time_delta,
@@ -192,7 +203,19 @@ impl Bank {
             &self.config.interest_rate_config,
             self.asset_share_value.into(),
             self.liability_share_value.into()
-        ).ok_or(OrbitlenError::MathError)?;
+        ).ok_or_else(|| {
+            let debug_self_asset_share_value = self.asset_share_value;
+            let debug_self_liability_share_value = self.liability_share_value;
+            msg!(
+                "Failed to calculate interest: time_delta={}, total_assets={}, total_liabilities={}, asset_share_value={}, liability_share_value={}",
+                time_delta,
+                total_assets,
+                total_liabilities,
+                debug_self_asset_share_value,
+                debug_self_liability_share_value
+            );
+            OrbitlenError::MathError
+        })?;
 
         msg!(
             "deposit share value: {}\nliability share value: {}",
@@ -206,133 +229,128 @@ impl Bank {
         Ok(())
     }
 
-    pub fn get_asset_shares(&self, value: i128) -> Result<i128> {
+    pub fn get_asset_shares(&self, value: u64) -> Result<u64> {
         Ok(value.checked_div(self.asset_share_value.into()).ok_or(OrbitlenError::MathError)?)
     }
 
-    pub fn change_asset_shares(&mut self, shares: i128) -> Result<()> {
-        let total_asset_shares = self.total_asset_shares;
-        self.total_asset_shares = total_asset_shares
-            .checked_add(shares)
-            .ok_or(OrbitlenError::MathError)?;
+    pub fn change_asset_shares(&mut self, shares: i64) -> Result<()> {
+        let total_asset_shares = self.total_asset_shares as i64;
+        self.total_asset_shares = (total_asset_shares + shares) as u64;
         Ok(())
     }
 
-    pub fn get_liability_shares(&self, value: i128) -> Result<i128> {
+    pub fn get_liability_shares(&self, value: u64) -> Result<u64> {
         Ok(value.checked_div(self.liability_share_value.into()).ok_or(OrbitlenError::MathError)?)
     }
 
-    pub fn change_liability_shares(&mut self, shares: i128) -> Result<()> {
-        let total_liability_shares = self.total_liability_shares;
-        self.total_liability_shares = total_liability_shares
-            .checked_add(shares)
-            .ok_or(OrbitlenError::MathError)?;
-
+    pub fn change_liability_shares(&mut self, shares: i64) -> Result<()> {
+        let total_liability_shares = self.total_liability_shares as i64;
+        self.total_liability_shares = (total_liability_shares + shares) as u64;
         Ok(())
     }
 }
 
 fn calc_interest_rate_accrual_state_changes(
     time_delta: u64,
-    total_assets_amount: i128,
-    total_liabilities_amount: i128,
+    total_assets_amount: u64,
+    total_liabilities_amount: u64,
     interest_rate_config: &InterestRateConfig,
-    asset_share_value: i128,
-    liability_share_value: i128
-) -> Option<(i128, i128)> {
-    let utilization_rate = total_liabilities_amount.checked_div(total_assets_amount)?;
-    let (lending_apr, borrowing_apr) = interest_rate_config.calc_interest_rate(utilization_rate)?;
+    asset_share_value: u64,
+    liability_share_value: u64
+) -> Option<(u64, u64)> {
+    msg!("=== calc_interest_rate_accrual_state_changes ===");
+    let utilization_rate = (total_liabilities_amount as f64) / (total_assets_amount as f64);
+    msg!("utilization_rate: {}", utilization_rate);
 
-    msg!(
-        "Accruing interest for {} seconds. Utilization rate: {}. Lending APR: {}. Borrowing APR: {}",
-        time_delta,
-        utilization_rate,
-        lending_apr,
-        borrowing_apr
-    );
-
+    let (lending_apr, borrowing_apr) = interest_rate_config.calc_interest_rate(
+        utilization_rate as f32
+    )?;
+    msg!("lending_apr: {}, borrowing_apr: {}", lending_apr, borrowing_apr);
     Some((
-        calc_accrued_interest_payment_per_period(lending_apr, time_delta, asset_share_value)?,
-        calc_accrued_interest_payment_per_period(borrowing_apr, time_delta, liability_share_value)?,
+        calc_accrued_interest_payment_per_period(
+            lending_apr,
+            time_delta as f32,
+            asset_share_value as f32
+        )?,
+        calc_accrued_interest_payment_per_period(
+            borrowing_apr,
+            time_delta as f32,
+            liability_share_value as f32
+        )?,
     ))
 }
 
-fn calc_accrued_interest_payment_per_period(
-    apr: i128,
-    time_delta: u64,
-    value: i128
-) -> Option<i128> {
-    let ir_per_period = apr.checked_mul(time_delta.into())?.checked_div(SECONDS_PER_YEAR)?;
-
-    let new_value = value.checked_mul(1 + ir_per_period)?;
-
-    Some(new_value)
+fn calc_accrued_interest_payment_per_period(apr: f32, time_delta: f32, value: f32) -> Option<u64> {
+    msg!("APR: {}, time_delta: {}, value: {}", apr, time_delta, value);
+    let ir_per_period = (apr * time_delta) / (SECONDS_PER_YEAR as f32);
+    msg!("Interest rate per period: {}", ir_per_period);
+    let new_value = value * (1.0 + ir_per_period);
+    msg!("New value: {}", new_value);
+    Some(new_value as u64)
 }
 
 #[zero_copy(unsafe)]
-#[derive(PartialEq, Eq, Debug, InitSpace, Default)]
+#[derive(PartialEq, Debug, InitSpace, Default)]
 pub struct BankConfig {
     pub interest_rate_config: InterestRateConfig,
-    pub oracle_key: Pubkey,
+    pub feed_data_key: Pubkey,
 }
 
 impl BankConfig {}
 
 #[zero_copy(unsafe)]
-#[derive(PartialEq, Eq, Default, Debug, InitSpace)]
+#[derive(PartialEq, Default, Debug, InitSpace)]
 pub struct InterestRateConfig {
-    pub optimal_utilization_rate: i128,
-    pub plateau_interest_rate: i128,
-    pub max_interest_rate: i128,
+    pub optimal_utilization_rate: u16,
+    pub plateau_interest_rate: u16,
+    pub max_interest_rate: u16,
 }
 
 impl InterestRateConfig {
-    pub fn calc_interest_rate(&self, utilization_ratio: i128) -> Option<(i128, i128)> {
+    pub fn as_float(&self, value: u16) -> f32 {
+        (value as f32) / 100.0
+    }
+    pub fn calc_interest_rate(&self, utilization_ratio: f32) -> Option<(f32, f32)> {
+        msg!("=== Interest Rate Calculation ===");
+        msg!("utilization_ratio: {}", utilization_ratio);
         let base_rate = self.interest_rate_curve(utilization_ratio)?;
-
-        let lending_rate = base_rate.checked_mul(utilization_ratio)?;
-
+        let lending_rate = base_rate * utilization_ratio;
         let borrowing_rate = base_rate;
-
         Some((lending_rate, borrowing_rate))
     }
 
-    fn interest_rate_curve(&self, ur: i128) -> Option<i128> {
-        let optimal_ur = self.optimal_utilization_rate;
-        let plateau_ir = self.plateau_interest_rate;
-        let max_ir = self.max_interest_rate;
-
+    fn interest_rate_curve(&self, ur: f32) -> Option<f32> {
+        let optimal_ur = self.as_float(self.optimal_utilization_rate);
+        let plateau_ir = self.as_float(self.plateau_interest_rate);
+        let max_ir = self.as_float(self.max_interest_rate);
         if ur <= optimal_ur {
-            ur.checked_div(optimal_ur)?.checked_mul(plateau_ir)
+            Some((ur / optimal_ur) * plateau_ir)
         } else {
-            (ur - optimal_ur)
-                .checked_div(1 - optimal_ur)?
-                .checked_mul(max_ir - plateau_ir)?
-                .checked_add(plateau_ir)
+            Some(((ur - optimal_ur) / (1.0 - optimal_ur)) * (max_ir - plateau_ir) + plateau_ir)
         }
     }
 }
 
-#[derive(PartialEq, Eq, AnchorDeserialize, AnchorSerialize, Debug)]
+#[derive(PartialEq, AnchorDeserialize, AnchorSerialize, Debug)]
 pub struct BankConfigCompact {
     pub interest_rate_config: InterestRateConfigCompact,
-    pub oracle_key: Pubkey,
+    pub feed_data_key: Pubkey,
 }
 
 impl From<BankConfigCompact> for BankConfig {
     fn from(config: BankConfigCompact) -> Self {
         Self {
             interest_rate_config: config.interest_rate_config.into(),
-            oracle_key: config.oracle_key,
+            feed_data_key: config.feed_data_key,
         }
     }
 }
 
-#[derive(Debug, AnchorDeserialize, AnchorSerialize, PartialEq, Eq)]
+#[derive(Debug, AnchorDeserialize, AnchorSerialize, PartialEq)]
 pub struct InterestRateConfigCompact {
-    pub optimal_utilization_rate: i128,
-    pub plateau_interest_rate: i128,
-    pub max_interest_rate: i128,
+    pub optimal_utilization_rate: u16,
+    pub plateau_interest_rate: u16,
+    pub max_interest_rate: u16,
 }
 
 impl From<InterestRateConfigCompact> for InterestRateConfig {
@@ -400,22 +418,22 @@ impl<'a> BankAccountWrapper<'a> {
         }
     }
 
-    pub fn withdraw(&mut self, amount: i128) -> Result<()> {
-        self.decrease_balance_internal(amount)
+    pub fn withdraw(&mut self, amount: u64) -> Result<()> {
+        self.decrease_balance_internal(amount as i64)
     }
 
-    pub fn deposit(&mut self, amount: i128) -> Result<()> {
-        self.increase_balance_internal(amount)
+    pub fn deposit(&mut self, amount: u64) -> Result<()> {
+        self.increase_balance_internal(amount as i64)
     }
 
-    fn increase_balance_internal(&mut self, balance_delta: i128) -> Result<()> {
+    fn increase_balance_internal(&mut self, balance_delta: i64) -> Result<()> {
         msg!("Balance increase: {} ", balance_delta);
 
         let balance = &mut self.balance;
         let bank = &mut self.bank;
 
         let current_liability_shares = balance.liability_shares.into();
-        let current_liability_amount = bank.get_liability_amount(current_liability_shares)?;
+        let current_liability_amount = bank.get_liability_amount(current_liability_shares)? as i64;
 
         let (liability_amount_decrease, asset_amount_increase) = (
             min(current_liability_amount, balance_delta),
@@ -427,41 +445,45 @@ impl<'a> BankAccountWrapper<'a> {
             ),
         );
 
-        let asset_shares_increase = bank.get_asset_shares(asset_amount_increase)?;
-        balance.change_asset_shares(asset_shares_increase)?;
-        bank.change_asset_shares(asset_shares_increase)?;
+        let asset_shares_increase = bank.get_asset_shares(asset_amount_increase as u64)?;
+        balance.change_asset_shares(asset_shares_increase as i64)?;
+        bank.change_asset_shares(asset_shares_increase as i64)?;
 
-        let liability_shares_decrease = bank.get_liability_shares(liability_amount_decrease)?;
-        balance.change_liability_shares(-liability_shares_decrease)?;
-        bank.change_liability_shares(-liability_shares_decrease)?;
+        let liability_shares_decrease = bank.get_liability_shares(
+            liability_amount_decrease as u64
+        )?;
+        balance.change_liability_shares(-(liability_shares_decrease as i64))?;
+        bank.change_liability_shares(-(liability_shares_decrease as i64))?;
 
         Ok(())
     }
 
-    pub fn decrease_balance_in_liquidation(&mut self, amount: i128) -> Result<()> {
-        self.decrease_balance_internal(amount)
+    pub fn decrease_balance_in_liquidation(&mut self, amount: u64) -> Result<()> {
+        self.decrease_balance_internal(amount as i64)
     }
 
-    pub fn increase_balance(&mut self, amount: i128) -> Result<()> {
-        self.increase_balance_internal(amount)
+    pub fn increase_balance(&mut self, amount: u64) -> Result<()> {
+        self.increase_balance_internal(amount as i64)
     }
 
-    pub fn borrow(&mut self, amount: i128) -> Result<()> {
-        self.decrease_balance_internal(amount)
+    pub fn borrow(&mut self, amount: u64) -> Result<()> {
+        self.decrease_balance_internal(amount as i64)
     }
 
-    pub fn increase_balance_in_liquidation(&mut self, amount: i128) -> Result<()> {
-        self.increase_balance_internal(amount)
+    pub fn increase_balance_in_liquidation(&mut self, amount: u64) -> Result<()> {
+        self.increase_balance_internal(amount as i64)
     }
 
-    fn decrease_balance_internal(&mut self, balance_delta: i128) -> Result<()> {
+    fn decrease_balance_internal(&mut self, balance_delta: i64) -> Result<()> {
         msg!("Balance decrease: {}", balance_delta);
 
         let balance = &mut self.balance;
         let bank = &mut self.bank;
 
         let current_asset_shares = balance.asset_shares;
-        let current_asset_amount = bank.get_asset_amount(current_asset_shares)?;
+        let current_asset_amount = bank.get_asset_amount(current_asset_shares)? as i64;
+
+        msg!("current_asset_amount: {}, balance_delta: {}", current_asset_amount, balance_delta);
 
         let (asset_amount_decrease, liability_amount_increase) = (
             min(current_asset_amount, balance_delta),
@@ -471,13 +493,15 @@ impl<'a> BankAccountWrapper<'a> {
             ),
         );
 
-        let asset_shares_decrease = bank.get_asset_shares(asset_amount_decrease)?;
-        balance.change_asset_shares(-asset_shares_decrease)?;
-        bank.change_asset_shares(-asset_shares_decrease)?;
+        let asset_shares_decrease = bank.get_asset_shares(asset_amount_decrease as u64)?;
+        balance.change_asset_shares(-(asset_shares_decrease as i64))?;
+        bank.change_asset_shares(-(asset_shares_decrease as i64))?;
 
-        let liability_shares_increase = bank.get_liability_shares(liability_amount_increase)?;
-        balance.change_liability_shares(liability_shares_increase)?;
-        bank.change_liability_shares(liability_shares_increase)?;
+        let liability_shares_increase = bank.get_liability_shares(
+            liability_amount_increase as u64
+        )?;
+        balance.change_liability_shares(liability_shares_increase as i64)?;
+        bank.change_liability_shares(liability_shares_increase as i64)?;
 
         bank.check_utilization_ratio()?;
 

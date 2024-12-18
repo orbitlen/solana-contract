@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use crate::error::*;
 
 #[account(zero_copy(unsafe))]
 #[derive(Debug, PartialEq, Eq, InitSpace)]
@@ -41,23 +40,21 @@ impl LendingAccount {
 #[derive(Debug, PartialEq, Eq, InitSpace)]
 pub struct Balance {
     pub bank_pk: Pubkey,
-    pub asset_shares: i128,
-    pub liability_shares: i128,
+    pub asset_shares: u64,
+    pub liability_shares: u64,
     pub last_update: u64,
 }
 
 impl Balance {
-    pub fn change_asset_shares(&mut self, delta: i128) -> Result<()> {
-        let asset_shares = self.asset_shares;
-        self.asset_shares = asset_shares.checked_add(delta).ok_or(OrbitlenError::MathError)?;
+    pub fn change_asset_shares(&mut self, delta: i64) -> Result<()> {
+        let asset_shares = self.asset_shares as i64;
+        self.asset_shares = (asset_shares + delta) as u64;
         Ok(())
     }
 
-    pub fn change_liability_shares(&mut self, delta: i128) -> Result<()> {
-        let liability_shares = self.liability_shares;
-        self.liability_shares = liability_shares
-            .checked_add(delta)
-            .ok_or(OrbitlenError::MathError)?;
+    pub fn change_liability_shares(&mut self, delta: i64) -> Result<()> {
+        let liability_shares = self.liability_shares as i64;
+        self.liability_shares = (liability_shares + delta) as u64;
         Ok(())
     }
 }

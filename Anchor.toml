@@ -5,8 +5,10 @@
 resolution = true
 skip-lint = false
 
+
+
 [programs.localnet]
-orbit_len = "7ZigWsEmK5JAW2mgKP19yRhcwt3gTpFMfkttXG7Hj9MF"
+orbit_len = "57FBXTUJZA8nxkdjyZPn2oBicQgeAZHFk7NmiKfmsZZY"
 
 [registry]
 url = "https://api.apr.dev"

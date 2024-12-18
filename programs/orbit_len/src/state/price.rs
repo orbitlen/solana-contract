@@ -7,16 +7,11 @@ use crate::error::OrbitlenError;
 use super::BankConfig;
 
 pub fn fetch_feed_price<'info>(feed: &AccountInfo<'_>, bank_config: &BankConfig) -> Result<f64> {
-    require_keys_eq!(*feed.key, bank_config.oracle_key, OrbitlenError::InvalidPriceFeedPk);
+    require_keys_eq!(*feed.key, bank_config.feed_data_key, OrbitlenError::InvalidPriceFeedPk);
     let feed_account = feed.data.borrow();
-
-    // Docs at: https://switchboard-on-demand-rust-docs.web.app/on_demand/accounts/pull_feed/struct.PullFeedAccountData.html
     let feed = PullFeedAccountData::parse(feed_account).unwrap();
-
-    // Get the value,
-
     let value = feed.value().unwrap_or(Decimal::ZERO);
-    println!("The {} value is: {:?}", bank_config.oracle_key, value);
+    msg!("The {} value is: {:?}", bank_config.feed_data_key, value);
     value.try_into().map_err(|_| OrbitlenError::FetchPriceFailed.into())
 }
 

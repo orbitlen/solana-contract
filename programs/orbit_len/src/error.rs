@@ -4,7 +4,7 @@ use anchor_lang::prelude::*;
 pub enum OrbitlenError {
     #[msg("Clock error")]
     GetClockFailed,
-    #[msg("Math error")]
+    #[msg("Math error on compute")]
     MathError,
     #[msg("Invalid transfer")]
     InvalidTransfer,
@@ -21,5 +21,7 @@ pub enum OrbitlenError {
     #[msg("fetch price failed")]
     FetchPriceFailed,
     #[msg("Invalid price feed pubkey")]
-    InvalidPriceFeedPk
+    InvalidPriceFeedPk,
+    #[msg("Math error on interest rate config")]
+    InterestRateConfigMathError,
 }
