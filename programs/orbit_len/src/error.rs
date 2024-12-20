@@ -8,8 +8,8 @@ pub enum OrbitlenError {
     MathError,
     #[msg("Invalid transfer")]
     InvalidTransfer,
-    #[msg("Token22 Banks require mint account as first remaining account")]
-    T22MintRequired,
+    #[msg("Banks require mint account as first remaining account")]
+    MintRequired,
     #[msg("Lending account balance slots are full")]
     LendingAccountBalanceSlotsFull,
     #[msg("Bank is missing")]
@@ -24,4 +24,6 @@ pub enum OrbitlenError {
     InvalidPriceFeedPk,
     #[msg("Math error on interest rate config")]
     InterestRateConfigMathError,
+    #[msg("Invalid token program")]
+    UnsupportedTokenProgram
 }

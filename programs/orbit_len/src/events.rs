@@ -1,6 +1,5 @@
 use anchor_lang::prelude::*;
 
-
 #[event]
 pub struct LendingAccountLiquidateEvent {
     pub header: AccountEventHeader,
@@ -29,14 +28,12 @@ pub struct AccountEventHeader {
     pub orbitlen_account_authority: Pubkey,
 }
 
-
 #[event]
 pub struct LendingPoolBankCreateEvent {
     pub signer: Pubkey,
     pub bank: Pubkey,
     pub mint: Pubkey,
 }
-
 
 #[event]
 pub struct OrbitlenAccountCreateEvent {
@@ -57,4 +54,25 @@ pub struct LendingAccountBorrowEvent {
     pub bank: Pubkey,
     pub mint: Pubkey,
     pub amount: u64,
+}
+
+/**
+ * Raydium events
+ */
+
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct RaydiumEventHeader {
+    pub amm: Pubkey,
+    pub market: Pubkey,
+    pub signer: Pubkey,
+    pub orbitlen_account: Pubkey,
+    pub orbitlen_account_authority: Pubkey,
+}
+
+#[event]
+pub struct RaydiumDepositEvent {
+    pub header: RaydiumEventHeader,
+    pub coin_mint: Pubkey,
+    pub coin_amount: u64,
+    pub pc_amount: u64,
 }

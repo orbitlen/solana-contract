@@ -45,7 +45,7 @@ pub fn lending_account_deposit_process<'info>(
         signer_token_account.to_account_info(),
         bank_liquidity_vault.to_account_info(),
         signer.to_account_info(),
-        maybe_bank_mint.as_ref(),
+        &maybe_bank_mint,
         token_program.to_account_info(),
         ctx.remaining_accounts
     )?;

@@ -13,7 +13,7 @@ pub use state::*;
 pub use utils::*;
 pub use events::*;
 
-declare_id!("57FBXTUJZA8nxkdjyZPn2oBicQgeAZHFk7NmiKfmsZZY");
+declare_id!("QoB7dVkkZr3oLb95DMpSptvUF8mTygDHNjFQh5y5RAb");
 
 #[program]
 pub mod orbit_len {
@@ -55,5 +55,14 @@ pub mod orbit_len {
         asset_amount: u64
     ) -> Result<()> {
         lending_account_liquidate_process(ctx, asset_amount)
+    }
+
+    // other defi protocols
+    pub fn raydium_deposit<'info>(
+        ctx: Context<'_, '_, '_, 'info, RaydiumDeposit<'info>>,
+        coin_amount: u64,
+        pc_amount: u64,
+    ) -> Result<()> {
+        raydium_deposit_process(ctx, coin_amount, pc_amount)
     }
 }

@@ -48,6 +48,7 @@ pub fn lending_account_liquidate_process<'info>(
             fetch_feed_price(&oracle_ais[0], &asset_bank.config)?
         };
         // WIF / USD 2.8
+        // let asset_price = 2.8;
         msg!("asset_price: {}", asset_price);
 
         let mut liab_bank = ctx.accounts.liab_bank.load_mut()?;
@@ -55,6 +56,8 @@ pub fn lending_account_liquidate_process<'info>(
             let oracle_ais = &ctx.remaining_accounts[1..2];
             fetch_feed_price(&oracle_ais[0], &liab_bank.config)?
         };
+
+        // let liab_price = 250.0;
         // AAPL / USD 250
 
         msg!("liab_price: {}", liab_price);

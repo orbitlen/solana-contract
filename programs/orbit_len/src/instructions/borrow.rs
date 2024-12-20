@@ -53,7 +53,7 @@ pub fn lending_account_borrow_process<'info>(
             bank_liquidity_vault.to_account_info(),
             destination_token_account.to_account_info(),
             bank_liquidity_vault_authority.to_account_info(),
-            maybe_bank_mint.as_ref(),
+            &maybe_bank_mint,
             token_program.to_account_info(),
             signer_seeds,
             ctx.remaining_accounts

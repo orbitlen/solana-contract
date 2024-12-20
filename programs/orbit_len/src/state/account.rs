@@ -22,7 +22,7 @@ impl OrbitlenAccount {
     }
 }
 
-const MAX_LENDING_ACCOUNT_BALANCES: usize = 3;
+const MAX_LENDING_ACCOUNT_BALANCES: usize = 6;
 
 #[zero_copy(unsafe)]
 #[derive(Debug, PartialEq, Eq, InitSpace)]

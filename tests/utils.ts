@@ -1,6 +1,3 @@
-import * as path from "path";
-import { promises as fs } from "fs";
-
 import {
   PublicKey,
   LAMPORTS_PER_SOL,

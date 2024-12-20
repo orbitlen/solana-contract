@@ -31,15 +31,15 @@ dotenv.config();
 //**
 // devnet:
 // admin: J1fS6hqK9fLezuGfc2BUCTAoXpKDEL5UNpeoDenscizK, userA: 51X3SJJXPgQQtAWXq8juDVcFdauuo9tNs3Ux5dLpBunY, userB: FefN4V9GnLaNvgBSonxgkEsWy4Z97e8Y35jVw6SWYYzU
-// AAPLMint: 7CtTWGmysW2RDNFLbdU13hfBMVkV9XFkd2xX5nHGe1V7, WIFMint: Dtq1VCyJgYiRfruo91EpkPL1HNuQUCGm7dkrxt3YkXBQ
-// AAPLBank: 2KNir3jskbH6PYEYE2ib1vsVEF5TmRwc5a4XC3v4kWTv, WIFBank: HiUPShvuUpGhyDPSkbASswGffcDYNTqczUXowivA7xqU
-// AAPLLiquidityVaultAuthority: 8mFxPGTn7voiw24HiCjvxGrM7adgvCben97cNPvwFQGA, AAPLLiquidityVault: BKocEzGfB2VCAvuCY6k4Et2R4ZddDKW1gVFk5or9rK4a
+// RayMint: 7CtTWGmysW2RDNFLbdU13hfBMVkV9XFkd2xX5nHGe1V7, WIFMint: Dtq1VCyJgYiRfruo91EpkPL1HNuQUCGm7dkrxt3YkXBQ
+// RayBank: 2KNir3jskbH6PYEYE2ib1vsVEF5TmRwc5a4XC3v4kWTv, WIFBank: HiUPShvuUpGhyDPSkbASswGffcDYNTqczUXowivA7xqU
+// RayLiquidityVaultAuthority: 8mFxPGTn7voiw24HiCjvxGrM7adgvCben97cNPvwFQGA, RayLiquidityVault: BKocEzGfB2VCAvuCY6k4Et2R4ZddDKW1gVFk5or9rK4a
 // WIFLiquidityVaultAuthority: 75TLjNQQEeds9M6Cz8QLNeG7GKBEoqsL37mtyxM8ZzX7, WIFLiquidityVault: F9J1ckFN2xXSf1xgVknomYafTGoLQtykBQYCwMRNYgN8
 // adminOrbitlenAccount: 8LHWQpQ3cmwGR3hFVWrqRZNr7Df2hjABmp14p3y7Yv7z
 // userAOrbitlenAccount: 5vMRUWAvhojMKdWAbrWhRDykfJ6tNy88A9goBcaCfQ82
 // userBOrbitlenAccount: Ao7FGEwMK46ACyzAXF5vHu3ijiUizsGEzncHDjYqFsiL
-// userAAAPL: 4szNuBQkjUBmdsDCCyDEhHvk1Bqi7HWvF7ZokL69bTsM, userAWIF: BS5ZLt5GCiu5dfaQxna1xPSA7fzoN593JK86wgify3Zn
-// userBAAPL: HYMreKT4fYk6Zjr6YutkdSHgFiK3Wdi94bTJYhnTcL8t, userBWIF: CM3FzZ5SXh5Q3nmaArYfXaVey7VuEwdr7rbFDGkqbbtq
+// userARay: 4szNuBQkjUBmdsDCCyDEhHvk1Bqi7HWvF7ZokL69bTsM, userAWIF: BS5ZLt5GCiu5dfaQxna1xPSA7fzoN593JK86wgify3Zn
+// userBRay: HYMreKT4fYk6Zjr6YutkdSHgFiK3Wdi94bTJYhnTcL8t, userBWIF: CM3FzZ5SXh5Q3nmaArYfXaVey7VuEwdr7rbFDGkqbbtq
 //  */
 describe("orbit_len", () => {
   // Configure the client to use the local cluster.
@@ -52,37 +52,37 @@ describe("orbit_len", () => {
   let isLocal = conn.rpcEndpoint.includes("127.0.0.1");
 
   let admin, userA, userB;
-  let AAPLMint, WIFMint, AAPLBank, WIFBank;
-  let AAPLLiquidityVaultAuthority,
-    AAPLLiquidityVault,
+  let RayMint, WIFMint, RayBank, WIFBank;
+  let RayLiquidityVaultAuthority,
+    RayLiquidityVault,
     WIFLiquidityVaultAuthority,
     WIFLiquidityVault;
   let adminOrbitlenAccount, userAOrbitlenAccount, userBOrbitlenAccount;
-  let userAAAPL, userAWIF, userBAAPL, userBWIF;
+  let userARay, userAWIF, userBRay, userBWIF;
 
-  const AAPLMintOnDevnet = new PublicKey(
-    "7CtTWGmysW2RDNFLbdU13hfBMVkV9XFkd2xX5nHGe1V7"
+  const RayMintOnDevnet = new PublicKey(
+    "7JLuhte13cbFdzphGVkcvLDW3SiXPDrU78Qvu221svho"
   );
   const WIFMintOnDevnet = new PublicKey(
-    "Dtq1VCyJgYiRfruo91EpkPL1HNuQUCGm7dkrxt3YkXBQ"
+    "6LYZ446PHTThBJtN7R3bCv6dkBdS83Zrm2cqtnekRQnV"
   );
 
-  const userAAAPLOnDevnt = new PublicKey(
+  const userARayOnDevnt = new PublicKey(
     "4szNuBQkjUBmdsDCCyDEhHvk1Bqi7HWvF7ZokL69bTsM"
   );
   const userAWIFOnDevnt = new PublicKey(
     "BS5ZLt5GCiu5dfaQxna1xPSA7fzoN593JK86wgify3Zn"
   );
 
-  const userBAAPLOnDevnt = new PublicKey(
+  const userBRayOnDevnt = new PublicKey(
     "HYMreKT4fYk6Zjr6YutkdSHgFiK3Wdi94bTJYhnTcL8t"
   );
   const userBWIFOnDevnt = new PublicKey(
     "CM3FzZ5SXh5Q3nmaArYfXaVey7VuEwdr7rbFDGkqbbtq"
   );
 
-  const AAPLFeedDataPk = new PublicKey(
-    "DFYTBb8oPb3jk6vbQcmWux8UssHXsf8u2dkyVNct8yCX"
+  const RayFeedDataPk = new PublicKey(
+    "2Vw5U3KRpVZJ7BnTeNhhMHuep4Ksxh1ohQBeKbKpsG7y"
   );
   const WIFFeedDataPk = new PublicKey(
     "2ffxPFJTGza5JSoheZYmTRmweRVyJi8Wn2ka4w5ksiAe"
@@ -100,47 +100,28 @@ describe("orbit_len", () => {
       await safeAirdrop(userB.publicKey, conn);
       await delay(1000);
     } else {
-      [admin, userA, userB] = await Promise.all([
+      [admin, userA, userB] = [
         getKeypairFromEnvironment("DEV_1"),
         getKeypairFromEnvironment("DEV_2"),
         getKeypairFromEnvironment("DEV_3"),
-      ]);
+      ];
     }
     console.log(
       `admin: ${admin.publicKey}, userA: ${userA.publicKey}, userB: ${userB.publicKey}`
     );
 
     if (isLocal) {
-      AAPLMint = await createMint(
-        conn,
-        admin,
-        admin.publicKey,
-        undefined,
-        6,
-        undefined,
-        undefined,
-        TOKEN_2022_PROGRAM_ID
-      );
-
-      WIFMint = await createMint(
-        conn,
-        admin,
-        admin.publicKey,
-        undefined,
-        6,
-        undefined,
-        undefined,
-        TOKEN_2022_PROGRAM_ID
-      );
-      console.log(`AAPL Mint: ${AAPLMint}, WIF Mint: ${WIFMint}`);
+      RayMint = await createMint(conn, admin, admin.publicKey, undefined, 6);
+      WIFMint = await createMint(conn, admin, admin.publicKey, undefined, 6);
     } else {
-      AAPLMint = AAPLMintOnDevnet;
+      RayMint = RayMintOnDevnet;
       WIFMint = WIFMintOnDevnet;
     }
+    console.log(`Ray Mint: ${RayMint}, WIF Mint: ${WIFMint}`);
 
     // fetch bank
-    [AAPLBank] = PublicKey.findProgramAddressSync(
-      [Buffer.from("bank"), AAPLMint.toBuffer()],
+    [RayBank] = PublicKey.findProgramAddressSync(
+      [Buffer.from("bank"), RayMint.toBuffer()],
       program.programId
     );
 
@@ -149,21 +130,21 @@ describe("orbit_len", () => {
       program.programId
     );
 
-    console.log(`AAPLBank: ${AAPLBank}, WIFBank: ${WIFBank}`);
+    console.log(`RayBank: ${RayBank}, WIFBank: ${WIFBank}`);
 
     // fetch liquidity vault
-    [AAPLLiquidityVaultAuthority] = PublicKey.findProgramAddressSync(
-      [Buffer.from("liquidity_vault_auth"), AAPLBank.toBuffer()],
+    [RayLiquidityVaultAuthority] = PublicKey.findProgramAddressSync(
+      [Buffer.from("liquidity_vault_auth"), RayBank.toBuffer()],
       program.programId
     );
 
-    [AAPLLiquidityVault] = PublicKey.findProgramAddressSync(
-      [Buffer.from("liquidity_vault"), AAPLBank.toBuffer()],
+    [RayLiquidityVault] = PublicKey.findProgramAddressSync(
+      [Buffer.from("liquidity_vault"), RayBank.toBuffer()],
       program.programId
     );
 
     console.log(
-      `AAPLLiquidityVaultAuthority: ${AAPLLiquidityVaultAuthority}, AAPLLiquidityVault: ${AAPLLiquidityVault}`
+      `RayLiquidityVaultAuthority: ${RayLiquidityVaultAuthority}, RayLiquidityVault: ${RayLiquidityVault}`
     );
 
     [WIFLiquidityVaultAuthority] = PublicKey.findProgramAddressSync(
@@ -203,109 +184,89 @@ describe("orbit_len", () => {
 
   it("initialize ATAs and mint tokens", async () => {
     // initialize associated token accounts
-    userAAAPL = await createAccount(
-      conn,
-      userA,
-      AAPLMint,
-      userA.publicKey,
-      undefined,
-      undefined,
-      TOKEN_2022_PROGRAM_ID
-    );
+    userARay = (
+      await getOrCreateAssociatedTokenAccount(
+        conn,
+        userA,
+        RayMint,
+        userA.publicKey
+      )
+    ).address;
 
-    userAWIF = await createAccount(
-      conn,
-      userA,
-      WIFMint,
-      userA.publicKey,
-      undefined,
-      undefined,
-      TOKEN_2022_PROGRAM_ID
-    );
+    userAWIF = (
+      await getOrCreateAssociatedTokenAccount(
+        conn,
+        userA,
+        WIFMint,
+        userA.publicKey
+      )
+    ).address;
 
-    console.log(`userAAAPL: ${userAAAPL}, userAWIF: ${userAWIF}`);
+    userBRay = (
+      await getOrCreateAssociatedTokenAccount(
+        conn,
+        userB,
+        RayMint,
+        userB.publicKey
+      )
+    ).address;
 
-    userBAAPL = await createAccount(
-      conn,
-      userB,
-      AAPLMint,
-      userB.publicKey,
-      undefined,
-      undefined,
-      TOKEN_2022_PROGRAM_ID
-    );
-
-    userBWIF = await createAccount(
-      conn,
-      userB,
-      WIFMint,
-      userB.publicKey,
-      undefined,
-      undefined,
-      TOKEN_2022_PROGRAM_ID
-    );
-
-    console.log(`userBAAPL: ${userBAAPL}, userBWIF: ${userBWIF}`);
+    userBWIF = (
+      await getOrCreateAssociatedTokenAccount(
+        conn,
+        userB,
+        WIFMint,
+        userB.publicKey
+      )
+    ).address;
 
     // mint tokens
     await mintTo(
       conn,
       userA,
-      AAPLMint,
-      isLocal ? userAAAPL : userAAAPLOnDevnt,
+      RayMint,
+      userARay,
       admin,
-      1000 * LAMPORTS_PER_TOKEN,
-      undefined,
-      undefined,
-      TOKEN_2022_PROGRAM_ID
+      1000 * LAMPORTS_PER_TOKEN
     );
 
     await mintTo(
       conn,
       userA,
       WIFMint,
-      isLocal ? userAWIF : userAWIFOnDevnt,
+      userAWIF,
       admin,
-      1000 * LAMPORTS_PER_TOKEN,
-      undefined,
-      undefined,
-      TOKEN_2022_PROGRAM_ID
+      1000 * LAMPORTS_PER_TOKEN
     );
 
     await mintTo(
       conn,
       userB,
-      AAPLMint,
-      isLocal ? userBAAPL : userBAAPLOnDevnt,
+      RayMint,
+      userBRay,
       admin,
-      1000 * LAMPORTS_PER_TOKEN,
-      undefined,
-      undefined,
-      TOKEN_2022_PROGRAM_ID
+      1000 * LAMPORTS_PER_TOKEN
     );
 
     await mintTo(
       conn,
       userB,
       WIFMint,
-      isLocal ? userBWIF : userBWIFOnDevnt,
+      userBWIF,
       admin,
-      1000 * LAMPORTS_PER_TOKEN,
-      undefined,
-      undefined,
-      TOKEN_2022_PROGRAM_ID
+      1000 * LAMPORTS_PER_TOKEN
     );
   });
 
   it("lending pool add bank", async () => {
     // params
-    let AAPLBankConfig = {
+    let RayBankConfig = {
       interestRateConfig: {
         optimalUtilizationRate: new anchor.BN(80),
         plateauInterestRate: new anchor.BN(10),
         maxInterestRate: new anchor.BN(50),
       },
-      feedDataKey: AAPLFeedDataPk,
+      feedDataKey: RayFeedDataPk,
     };
     let WIFBankConfig = {
       interestRateConfig: {
@@ -316,28 +277,28 @@ describe("orbit_len", () => {
       feedDataKey: WIFFeedDataPk,
     };
     // accounts
-    // initialize AAPL vault and bank
+    // initialize Ray vault and bank
     await program.methods
-      .initialVault(AAPLBank)
+      .initialVault(RayBank)
       .accounts({
         admin: admin.publicKey,
-        bankMint: AAPLMint,
-        liquidityVaultAuthority: AAPLLiquidityVaultAuthority,
-        liquidityVault: AAPLLiquidityVault,
-        tokenProgram: TOKEN_2022_PROGRAM_ID,
+        bankMint: RayMint,
+        liquidityVaultAuthority: RayLiquidityVaultAuthority,
+        liquidityVault: RayLiquidityVault,
+        tokenProgram: TOKEN_PROGRAM_ID,
       })
       .signers([admin])
       .rpc();
 
     await program.methods
-      .lendingPoolAddBank(AAPLBankConfig)
+      .lendingPoolAddBank(RayBankConfig)
       .accounts({
         admin: admin.publicKey,
-        bankMint: AAPLMint,
-        bank: AAPLBank,
-        liquidityVaultAuthority: AAPLLiquidityVaultAuthority,
-        liquidityVault: AAPLLiquidityVault,
-        tokenProgram: TOKEN_2022_PROGRAM_ID,
+        bankMint: RayMint,
+        bank: RayBank,
+        liquidityVaultAuthority: RayLiquidityVaultAuthority,
+        liquidityVault: RayLiquidityVault,
+        tokenProgram: TOKEN_PROGRAM_ID,
       })
       .signers([admin])
       .rpc();
@@ -350,7 +311,7 @@ describe("orbit_len", () => {
         bankMint: WIFMint,
         liquidityVaultAuthority: WIFLiquidityVaultAuthority,
         liquidityVault: WIFLiquidityVault,
-        tokenProgram: TOKEN_2022_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
       })
       .signers([admin])
       .rpc();
@@ -363,17 +324,17 @@ describe("orbit_len", () => {
         bank: WIFBank,
         liquidityVaultAuthority: WIFLiquidityVaultAuthority,
         liquidityVault: WIFLiquidityVault,
-        tokenProgram: TOKEN_2022_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
       })
       .signers([admin])
       .rpc();
 
     await delay(1000);
     const bankInfos = await program.account.bank.fetchMultiple([
-      AAPLBank,
+      RayBank,
       WIFBank,
     ]);
-    console.log("AAPLBank:", JSON.stringify(bankInfos[0], null, 2));
+    console.log("RayBank:", JSON.stringify(bankInfos[0], null, 2));
     console.log("WIFBank:", JSON.stringify(bankInfos[1], null, 2));
   });
 
@@ -421,14 +382,14 @@ describe("orbit_len", () => {
       .accounts({
         orbitlenAccount: userAOrbitlenAccount,
         signer: userA.publicKey,
-        bank: AAPLBank,
-        signerTokenAccount: isLocal ? userAAAPL : userAAAPLOnDevnt,
-        bankLiquidityVault: AAPLLiquidityVault,
-        tokenProgram: TOKEN_2022_PROGRAM_ID,
+        bank: RayBank,
+        signerTokenAccount: isLocal ? userARay : userARayOnDevnt,
+        bankLiquidityVault: RayLiquidityVault,
+        tokenProgram: TOKEN_PROGRAM_ID,
       })
       .remainingAccounts([
         {
-          pubkey: AAPLMint,
+          pubkey: RayMint,
           isWritable: false,
           isSigner: false,
         },
@@ -444,7 +405,7 @@ describe("orbit_len", () => {
         bank: WIFBank,
         signerTokenAccount: isLocal ? userAWIF : userAWIFOnDevnt,
         bankLiquidityVault: WIFLiquidityVault,
-        tokenProgram: TOKEN_2022_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
       })
       .remainingAccounts([
         {
@@ -458,21 +419,11 @@ describe("orbit_len", () => {
 
     console.log("=== deposit ===");
 
-    let userAAAPLInfo = await getAccount(
-      conn,
-      userAAAPL,
-      undefined,
-      TOKEN_2022_PROGRAM_ID
-    );
-    console.log("userAAAPLInfo:", userAAAPLInfo);
+    let userARayInfo = await getAccount(conn, userARay);
+    console.log("userARayInfo:", userARayInfo);
 
-    let AAPLLiquidityVaultInfo = await getAccount(
-      conn,
-      AAPLLiquidityVault,
-      undefined,
-      TOKEN_2022_PROGRAM_ID
-    );
-    console.log("AAPLLiquidityVaultInfo:", AAPLLiquidityVaultInfo);
+    let RayLiquidityVaultInfo = await getAccount(conn, RayLiquidityVault);
+    console.log("RayLiquidityVaultInfo:", RayLiquidityVaultInfo);
 
     await delay(1000);
 
@@ -484,8 +435,8 @@ describe("orbit_len", () => {
       JSON.stringify(userAOrbitlenAccountInfo, null, 2)
     );
 
-    let AAPLBankInfo = await program.account.bank.fetch(AAPLBank);
-    console.log("AAPLBankInfo:", JSON.stringify(AAPLBankInfo, null, 2));
+    let RayBankInfo = await program.account.bank.fetch(RayBank);
+    console.log("RayBankInfo:", JSON.stringify(RayBankInfo, null, 2));
   });
 
   it("lending account borrow", async () => {
@@ -503,7 +454,7 @@ describe("orbit_len", () => {
         destinationTokenAccount: borrowerWIF,
         bankLiquidityVaultAuthority: WIFLiquidityVaultAuthority,
         bankLiquidityVault: WIFLiquidityVault,
-        tokenProgram: TOKEN_2022_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
       })
       .remainingAccounts([
         {
@@ -527,18 +478,18 @@ describe("orbit_len", () => {
   });
 
   it("lending account liquidate", async () => {
-    // WIF as asset、AAPL as liability
+    // WIF as asset、Ray as liability
     let liquidator = userA;
     const liquidatorOrbitlenAccount = userAOrbitlenAccount;
     const liquidatorWIF = isLocal ? userAWIF : userAWIFOnDevnt;
-    const liquidatorAAPL = isLocal ? userAAAPL : userAAAPLOnDevnt;
+    const liquidatorRay = isLocal ? userARay : userARayOnDevnt;
 
     let liquidatee = userB;
     const liquidateeOrbitlenAccount = userBOrbitlenAccount;
     const liquidateeWIF = isLocal ? userBWIF : userBWIFOnDevnt;
-    const liquidateeAAPL = isLocal ? userBAAPL : userBAAPLOnDevnt;
+    const liquidateeRay = isLocal ? userBRay : userBRayOnDevnt;
 
-    // liquidator deposit 500 WIF and 500 AAPL, liquidatee borrow 5 AAPL and deposit 500 WIF
+    // liquidator deposit 500 WIF and 500 Ray, liquidatee borrow 5 Ray and deposit 500 WIF
     const depositAmount = new anchor.BN(500 * LAMPORTS_PER_TOKEN);
     const borrowAmount = new anchor.BN(5 * LAMPORTS_PER_TOKEN);
 
@@ -550,7 +501,7 @@ describe("orbit_len", () => {
         bank: WIFBank,
         signerTokenAccount: liquidatorWIF,
         bankLiquidityVault: WIFLiquidityVault,
-        tokenProgram: TOKEN_2022_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
       })
       .remainingAccounts([
         {
@@ -569,14 +520,14 @@ describe("orbit_len", () => {
       .accounts({
         orbitlenAccount: liquidatorOrbitlenAccount,
         signer: liquidator.publicKey,
-        bank: AAPLBank,
-        signerTokenAccount: liquidatorAAPL,
-        bankLiquidityVault: AAPLLiquidityVault,
-        tokenProgram: TOKEN_2022_PROGRAM_ID,
+        bank: RayBank,
+        signerTokenAccount: liquidatorRay,
+        bankLiquidityVault: RayLiquidityVault,
+        tokenProgram: TOKEN_PROGRAM_ID,
       })
       .remainingAccounts([
         {
-          pubkey: AAPLMint,
+          pubkey: RayMint,
           isWritable: false,
           isSigner: false,
         },
@@ -584,7 +535,7 @@ describe("orbit_len", () => {
       .signers([liquidator])
       .rpc();
 
-    console.log(`liquidator deposit 500 AAPL`);
+    console.log(`liquidator deposit 500 Ray`);
 
     await program.methods
       .lendingAccountDeposit(depositAmount)
@@ -594,7 +545,7 @@ describe("orbit_len", () => {
         bank: WIFBank,
         signerTokenAccount: liquidateeWIF,
         bankLiquidityVault: WIFLiquidityVault,
-        tokenProgram: TOKEN_2022_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
       })
       .remainingAccounts([
         {
@@ -613,15 +564,15 @@ describe("orbit_len", () => {
       .accounts({
         orbitlenAccount: liquidateeOrbitlenAccount,
         signer: liquidatee.publicKey,
-        bank: AAPLBank,
-        destinationTokenAccount: liquidateeAAPL,
-        bankLiquidityVaultAuthority: AAPLLiquidityVaultAuthority,
-        bankLiquidityVault: AAPLLiquidityVault,
-        tokenProgram: TOKEN_2022_PROGRAM_ID,
+        bank: RayBank,
+        destinationTokenAccount: liquidateeRay,
+        bankLiquidityVaultAuthority: RayLiquidityVaultAuthority,
+        bankLiquidityVault: RayLiquidityVault,
+        tokenProgram: TOKEN_PROGRAM_ID,
       })
       .remainingAccounts([
         {
-          pubkey: AAPLMint,
+          pubkey: RayMint,
           isWritable: false,
           isSigner: false,
         },
@@ -629,11 +580,11 @@ describe("orbit_len", () => {
       .signers([liquidatee])
       .rpc();
 
-    console.log(`liquidatee borrow 5 AAPL`);
+    console.log(`liquidatee borrow 5 Ray`);
 
     // // WIF / USD 2.8
-    // // AAPL / USD 250
-    // // if pay off 2 AAPL then the liquidatee would send liquidator 179 WIF
+    // // Ray / USD 250
+    // // if pay off 2 Ray then the liquidatee would send liquidator 179 WIF
     const liquidateAmount = new anchor.BN(2 * LAMPORTS_PER_TOKEN);
 
     await delay(5000);
@@ -641,7 +592,7 @@ describe("orbit_len", () => {
       .lendingAccountLiquidate(liquidateAmount)
       .accounts({
         assetBank: WIFBank,
-        liabBank: AAPLBank,
+        liabBank: RayBank,
         liquidatorOrbitlenAccount: liquidatorOrbitlenAccount,
         signer: liquidator.publicKey,
         liquidateeOrbitlenAccount: liquidateeOrbitlenAccount,
@@ -653,7 +604,7 @@ describe("orbit_len", () => {
           isSigner: false,
         },
         {
-          pubkey: AAPLFeedDataPk,
+          pubkey: RayFeedDataPk,
           isWritable: false,
           isSigner: false,
         },
@@ -669,10 +620,10 @@ describe("orbit_len", () => {
     console.log("liquidatorInfo:", JSON.stringify(liqInfos[0], null, 2));
     console.log("liquidateeInfo:", JSON.stringify(liqInfos[1], null, 2));
     let bankInfos = await program.account.bank.fetchMultiple([
-      AAPLBank,
+      RayBank,
       WIFBank,
     ]);
-    console.log("AAPLBankInfo:", JSON.stringify(bankInfos[0], null, 2));
+    console.log("RayBankInfo:", JSON.stringify(bankInfos[0], null, 2));
     console.log("WIFBankInfo:", JSON.stringify(bankInfos[1], null, 2));
   });
 });

@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 use crate::{ state::account::*, error::*, constants::* };
 use std::{ cmp::{ max, min }, fmt::Debug };
 use anchor_spl::token_interface::*;
+use anchor_spl::token::{ transfer_checked, TransferChecked };
 
 #[account(zero_copy(unsafe))]
 #[derive(Debug, PartialEq, Default, InitSpace)]
@@ -57,7 +58,7 @@ impl Bank {
         from: AccountInfo<'info>,
         to: AccountInfo<'info>,
         authority: AccountInfo<'info>,
-        maybe_mint: Option<&InterfaceAccount<'info, Mint>>,
+        maybe_mint: &InterfaceAccount<'info, Mint>,
         program: AccountInfo<'info>,
         remaining_accounts: &[AccountInfo<'info>]
     ) -> Result<()> {
@@ -71,32 +72,35 @@ impl Bank {
             authority.key
         );
 
-        if let Some(mint) = maybe_mint {
-            spl_token_2022::onchain::invoke_transfer_checked(
-                program.key,
-                from,
-                mint.to_account_info(),
-                to,
-                authority,
-                remaining_accounts,
-                amount,
-                mint.decimals,
-                &[]
-            )?;
-        } else {
-            #[allow(deprecated)]
-            transfer(
-                CpiContext::new_with_signer(
-                    program,
-                    Transfer {
+        match *program.key {
+            anchor_spl::token::ID => {
+                transfer_checked(
+                    CpiContext::new(program, TransferChecked {
                         from,
+                        mint: maybe_mint.to_account_info(),
                         to,
                         authority,
-                    },
+                    }),
+                    amount,
+                    maybe_mint.decimals
+                )?;
+            }
+            anchor_spl::token_2022::ID => {
+                spl_token_2022::onchain::invoke_transfer_checked(
+                    program.key,
+                    from,
+                    maybe_mint.to_account_info(),
+                    to,
+                    authority,
+                    remaining_accounts,
+                    amount,
+                    maybe_mint.decimals,
                     &[]
-                ),
-                amount
-            )?;
+                )?;
+            }
+            _ => {
+                return Err(error!(OrbitlenError::UnsupportedTokenProgram));
+            }
         }
 
         Ok(())
@@ -108,7 +112,7 @@ impl Bank {
         from: AccountInfo<'info>,
         to: AccountInfo<'info>,
         authority: AccountInfo<'info>,
-        maybe_mint: Option<&InterfaceAccount<'info, Mint>>,
+        maybe_mint: &InterfaceAccount<'info, Mint>,
         program: AccountInfo<'info>,
         signer_seeds: &[&[&[u8]]],
         remaining_accounts: &[AccountInfo<'info>]
@@ -121,32 +125,39 @@ impl Bank {
             authority.key
         );
 
-        if let Some(mint) = maybe_mint {
-            spl_token_2022::onchain::invoke_transfer_checked(
-                program.key,
-                from,
-                mint.to_account_info(),
-                to,
-                authority,
-                remaining_accounts,
-                amount,
-                mint.decimals,
-                signer_seeds
-            )?;
-        } else {
-            #[allow(deprecated)]
-            transfer(
-                CpiContext::new_with_signer(
-                    program,
-                    Transfer {
-                        from,
-                        to,
-                        authority,
-                    },
+        match *program.key {
+            anchor_spl::token::ID => {
+                transfer_checked(
+                    CpiContext::new_with_signer(
+                        program,
+                        TransferChecked {
+                            from,
+                            mint: maybe_mint.to_account_info(),
+                            to,
+                            authority,
+                        },
+                        signer_seeds
+                    ),
+                    amount,
+                    maybe_mint.decimals
+                )?;
+            }
+            anchor_spl::token_2022::ID => {
+                spl_token_2022::onchain::invoke_transfer_checked(
+                    program.key,
+                    from,
+                    maybe_mint.to_account_info(),
+                    to,
+                    authority,
+                    remaining_accounts,
+                    amount,
+                    maybe_mint.decimals,
                     signer_seeds
-                ),
-                amount
-            )?;
+                )?;
+            }
+            _ => {
+                return Err(error!(OrbitlenError::UnsupportedTokenProgram));
+            }
         }
 
         Ok(())
@@ -466,6 +477,10 @@ impl<'a> BankAccountWrapper<'a> {
         self.increase_balance_internal(amount as i64)
     }
 
+    pub fn decrease_balance(&mut self, amount: u64) -> Result<()> {
+        self.decrease_balance_internal(amount as i64)
+    }
+
     pub fn borrow(&mut self, amount: u64) -> Result<()> {
         self.decrease_balance_internal(amount as i64)
     }
@@ -514,7 +529,7 @@ impl<'a> BankAccountWrapper<'a> {
         from: AccountInfo<'info>,
         to: AccountInfo<'info>,
         authority: AccountInfo<'info>,
-        mint: Option<&InterfaceAccount<'info, Mint>>,
+        mint: &InterfaceAccount<'info, Mint>,
         program: AccountInfo<'info>,
         signer_seeds: &[&[&[u8]]],
         remaining_accounts: &[AccountInfo<'info>]
@@ -537,7 +552,7 @@ impl<'a> BankAccountWrapper<'a> {
         from: AccountInfo<'info>,
         to: AccountInfo<'info>,
         authority: AccountInfo<'info>,
-        maybe_mint: Option<&InterfaceAccount<'info, Mint>>,
+        maybe_mint: &InterfaceAccount<'info, Mint>,
         program: AccountInfo<'info>,
         remaining_accounts: &[AccountInfo<'info>]
     ) -> Result<()> {
@@ -556,21 +571,18 @@ impl<'a> BankAccountWrapper<'a> {
 #[derive(Debug, Clone)]
 pub enum BankVaultType {
     Liquidity,
-    Insurance,
 }
 
 impl BankVaultType {
     pub fn get_seed(self) -> &'static [u8] {
         match self {
             BankVaultType::Liquidity => LIQUIDITY_VAULT_SEED.as_bytes(),
-            BankVaultType::Insurance => INSURANCE_VAULT_SEED.as_bytes(),
         }
     }
 
     pub fn get_authority_seed(self) -> &'static [u8] {
         match self {
             BankVaultType::Liquidity => LIQUIDITY_VAULT_AUTHORITY_SEED.as_bytes(),
-            BankVaultType::Insurance => INSURANCE_VAULT_AUTHORITY_SEED.as_bytes(),
         }
     }
 }
