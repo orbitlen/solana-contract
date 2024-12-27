@@ -27,8 +27,6 @@ devnet: https://solscan.io/account/QoB7dVkkZr3oLb95DMpSptvUF8mTygDHNjFQh5y5RAb?c
 ---
 
 #### **DeFi Protocol Interactions**
-1. **`raydium_deposit`**
-   - Handles deposits into the Raydium protocol.
+1. **`raydium_deposit / withdraw`**
+2. **`raydium_swap_base_in / out `**
 
-#### On the Roadmap
-Raydium's swap and withdraw
