@@ -11,6 +11,7 @@ orbit_len = "QoB7dVkkZr3oLb95DMpSptvUF8mTygDHNjFQh5y5RAb"
 url = "https://api.apr.dev"
 
 [provider]
+# cluster = "https://indulgent-restless-snowflake.solana-devnet.quiknode.pro/68a14a3306ba9773105b138c7981ec4350f288fa"
 cluster = "https://devnet.helius-rpc.com/?api-key=f84a6f24-1feb-4290-bc2f-4fc95cf5e7f0"
 wallet = "~/.config/solana/id.json"
 

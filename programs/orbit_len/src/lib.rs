@@ -59,10 +59,33 @@ pub mod orbit_len {
 
     // other defi protocols
     pub fn raydium_deposit<'info>(
-        ctx: Context<'_, '_, '_, 'info, RaydiumDeposit<'info>>,
+        ctx: Context<'_, '_, '_, 'info, ProxyDeposit<'info>>,
         coin_amount: u64,
-        pc_amount: u64,
+        pc_amount: u64
     ) -> Result<()> {
-        raydium_deposit_process(ctx, coin_amount, pc_amount)
+        raydium::deposit_process(ctx, coin_amount, pc_amount)
+    }
+
+    pub fn raydium_withdraw<'info>(
+        ctx: Context<'_, '_, '_, 'info, ProxyWithdraw<'info>>,
+        amount: u64
+    ) -> Result<()> {
+        raydium::withdraw_process(ctx, amount)
+    }
+
+    pub fn raydium_swap_base_in<'info>(
+        ctx: Context<'_, '_, '_, 'info, ProxySwapBaseIn<'info>>,
+        amount_in: u64,
+        minimum_amount_out: u64
+    ) -> Result<()> {
+        raydium::swap_base_in_process(ctx, amount_in, minimum_amount_out)
+    }
+
+    pub fn raydium_swap_base_out<'info>(
+        ctx: Context<'_, '_, '_, 'info, ProxySwapBaseOut<'info>>,
+        max_amount_in: u64,
+        amount_out: u64
+    ) -> Result<()> {
+        raydium::swap_base_out_process(ctx, max_amount_in, amount_out)
     }
 }

@@ -9,3 +9,5 @@ pub const BANK_SEED: &str = "bank";
 pub const ORBITLEN_ACCOUNT_SEED: &str = "orbitlen_account";
 
 pub const SECONDS_PER_YEAR: usize = 31_536_000;
+
+pub const COMMON_TOKEN_DECIMALS: u8 = 6;

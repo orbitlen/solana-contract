@@ -77,6 +77,30 @@ dotenv.config();
 }
  */
 
+/**
+ * marketInfo: {
+  "ownAddress": "EPUYeveeorDAX6qeG8T2uva7CpNCfDAsb8RpeTeLYp8Y",
+  "vaultSignerNonce": "00",
+  "baseMint": "7JLuhte13cbFdzphGVkcvLDW3SiXPDrU78Qvu221svho",
+  "quoteMint": "DceACY73GHpkFWLDn3cfy9QBUgDWH4SXRcFJ4pGUPi3A",
+  "baseVault": "NLBtkQMhMhZWtHFcXARUbBofPnu6MWwWeb1PdzJxXCq",
+  "baseDepositsTotal": "00",
+  "baseFeesAccrued": "00",
+  "quoteVault": "9CzAG2Pnm11Dpo8cno8WwcLm821rD9AZCmatSQqzj4J3",
+  "quoteDepositsTotal": "00",
+  "quoteFeesAccrued": "00",
+  "quoteDustThreshold": "64",
+  "requestQueue": "2mXRWvhjFF3mSpXryBvLWA91nhTbJ27khnUg33AK34vg",
+  "eventQueue": "ALKDo9po7bpgfS1PPRYaDExxMcchJcLv9LyR1G6B5WHM",
+  "bids": "F7cmLJpaJ7MPNd4oDUyLqy9nsqsFqeBmLg1LPwvod6v5",
+  "asks": "DMwQQGd3rzk4JNa2fUmhxqKEjg2MbKskQFSQY2QEf4ak",
+  "baseLotSize": "0f4240",
+  "quoteLotSize": "989680",
+  "feeRateBps": "00",
+  "referrerRebatesAccrued": "00"
+}
+ */
+
 const globalInfo = {
   ammProgram: new PublicKey("HWy1jotHpo6UqeQxx49dpYYdQB8wj9Qk9MdxwjLvDHB8"),
   ammCreateFeeDestination: new PublicKey(
@@ -103,6 +127,28 @@ const globalInfo = {
     "3XMrhbv989VxAMi3DErLV9eJht1pHppW5LbKxe9fkEFR"
   ),
   RayFeedDataPk: new PublicKey("2Vw5U3KRpVZJ7BnTeNhhMHuep4Ksxh1ohQBeKbKpsG7y"),
+};
+
+const marketInfo = {
+  ownAddress: new PublicKey("EPUYeveeorDAX6qeG8T2uva7CpNCfDAsb8RpeTeLYp8Y"),
+  vaultSignerNonce: 0,
+  baseMint: new PublicKey("7JLuhte13cbFdzphGVkcvLDW3SiXPDrU78Qvu221svho"),
+  quoteMint: new PublicKey("DceACY73GHpkFWLDn3cfy9QBUgDWH4SXRcFJ4pGUPi3A"),
+  baseVault: new PublicKey("NLBtkQMhMhZWtHFcXARUbBofPnu6MWwWeb1PdzJxXCq"),
+  baseDepositsTotal: 0,
+  baseFeesAccrued: 0,
+  quoteVault: new PublicKey("9CzAG2Pnm11Dpo8cno8WwcLm821rD9AZCmatSQqzj4J3"),
+  quoteDepositsTotal: 0,
+  quoteFeesAccrued: 0,
+  quoteDustThreshold: 64,
+  requestQueue: new PublicKey("2mXRWvhjFF3mSpXryBvLWA91nhTbJ27khnUg33AK34vg"),
+  eventQueue: new PublicKey("ALKDo9po7bpgfS1PPRYaDExxMcchJcLv9LyR1G6B5WHM"),
+  bids: new PublicKey("F7cmLJpaJ7MPNd4oDUyLqy9nsqsFqeBmLg1LPwvod6v5"),
+  asks: new PublicKey("DMwQQGd3rzk4JNa2fUmhxqKEjg2MbKskQFSQY2QEf4ak"),
+  baseLotSize: 1000000,
+  quoteLotSize: 10000000,
+  feeRateBps: 0,
+  referrerRebatesAccrued: 0,
 };
 
 describe("raydium", () => {
@@ -165,9 +211,6 @@ describe("raydium", () => {
   it("create market", async () => {
     let RAYMint = await createMint(conn, admin, admin.publicKey, undefined, 6);
     let USDCMint = await createMint(conn, admin, admin.publicKey, undefined, 9);
-
-    // console.log("RAYMint", RAYMint.toString());
-    // console.log("USDCMint", USDCMint.toString());
 
     // create market doesn't support token 2022
     const { execute, extInfo, transactions } = await raydium.marketV2.create({
@@ -305,42 +348,6 @@ describe("raydium", () => {
 
   it("deposit", async () => {
     const depositAmount = new BN(50 * LAMPORTS_PER_TOKEN);
-    // await mintTo(
-    //   conn,
-    //   userA,
-    //   globalInfo.coinMint,
-    //   userARay,
-    //   admin,
-    //   depositAmount.toNumber()
-    // );
-
-    // await program.methods
-    //   .lendingAccountDeposit(depositAmount)
-    //   .accounts({
-    //     orbitlenAccount: userAOrbitlenAccount,
-    //     signer: userA.publicKey,
-    //     bank: RayBank,
-    //     signerTokenAccount: userARay,
-    //     bankLiquidityVault: RayLiquidityVault,
-    //     tokenProgram: TOKEN_PROGRAM_ID,
-    //   })
-    //   .remainingAccounts([
-    //     {
-    //       pubkey: globalInfo.coinMint,
-    //       isWritable: false,
-    //       isSigner: false,
-    //     },
-    //   ])
-    //   .signers([userA])
-    //   .rpc();
-
-    // userALP = await getOrCreateAssociatedTokenAccount(
-    //   conn,
-    //   userA,
-    //   globalInfo.lpMint,
-    //   userA.publicKey
-    // );
-
     // check balance in coin、pc、lp, ensure sufficient coin and pc
     let userAUSDCInfo = await getAccount(conn, userAUSDC);
     console.log("userAUSDCInfo", userAUSDCInfo);
@@ -398,5 +405,194 @@ describe("raydium", () => {
 
     let RayBankInfo = await program.account.bank.fetch(RayBank);
     console.log("RayBankInfo", JSON.stringify(RayBankInfo, null, 2));
+  });
+
+  it("withdraw", async () => {
+    const marketBufferInfo = await raydium.connection.getAccountInfo(
+      globalInfo.marketId
+    );
+    const marketInfo = MARKET_STATE_LAYOUT_V3.decode(marketBufferInfo!.data);
+    console.log("marketInfo:", JSON.stringify(marketInfo, null, 2));
+
+    // check balance in coin、pc、lp, ensure sufficient coin and pc
+    let userAUSDCInfo = await getAccount(conn, userAUSDC);
+    console.log("userAUSDCInfo", userAUSDCInfo);
+
+    let userARayInfo = await getAccount(conn, userARay);
+    console.log("userARayInfo", userARayInfo);
+
+    let userALPInfo = await getAccount(conn, userALP);
+    console.log("userALPInfo", userALPInfo);
+
+    let tx = await program.methods
+      .raydiumWithdraw(
+        new BN(5 * LAMPORTS_PER_TOKEN) // lp amount
+      )
+      .accounts({
+        // amm accounts
+        ammProgram: globalInfo.ammProgram,
+        amm: globalInfo.ammId,
+        ammAuthority: globalInfo.ammAuthority,
+        ammOpenOrders: globalInfo.ammOpenOrders,
+        ammTargetOrders: globalInfo.ammTargetOrders,
+        ammLpMint: globalInfo.lpMint,
+        ammCoinVault: globalInfo.coinVault,
+        ammPcVault: globalInfo.pcVault,
+        // market accounts
+        marketProgram: globalInfo.marketProgram,
+        market: globalInfo.marketId,
+        marketCoinVault: marketInfo.baseVault,
+        marketPcVault: marketInfo.quoteVault,
+        marketVaultSigner: marketInfo.ownAddress,
+        // user token accounts
+        userTokenLp: userALP,
+        userTokenCoin: userARay,
+        userTokenPc: userAUSDC,
+        userOwner: userA.publicKey,
+        // market accounts
+        marketEventQ: marketInfo.eventQueue,
+        marketBids: marketInfo.bids,
+        marketAsks: marketInfo.asks,
+        // orbitlen accounts
+        orbitlenAccount: userAOrbitlenAccount,
+        bank: RayBank, // coin bank
+        bankLiquidityVault: RayLiquidityVault,
+        userCoinTokenAccount: userARay,
+        coinMint: globalInfo.coinMint,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .preInstructions([
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 1600000 }),
+      ])
+      .signers([userA])
+      .rpc();
+
+    console.log("tx", tx);
+  });
+
+  it("swap base in", async () => {
+    // check amm coin and pc balance
+    let coinVaultAmount = await getAccount(conn, globalInfo.coinVault);
+    console.log("coinVaultAmount", coinVaultAmount);
+
+    let pcVaultAmount = await getAccount(conn, globalInfo.pcVault);
+    console.log("pcVaultAmount", pcVaultAmount);
+    // check balance in coin、pc、lp, ensure sufficient coin and pc
+    let userAUSDCInfo = await getAccount(conn, userAUSDC);
+    console.log("userAUSDCInfo", userAUSDCInfo);
+
+    let userARayInfo = await getAccount(conn, userARay);
+    console.log("userARayInfo", userARayInfo);
+
+    let userALPInfo = await getAccount(conn, userALP);
+    console.log("userALPInfo", userALPInfo);
+
+    // RAY -> USDC
+    let tx = await program.methods
+      .raydiumSwapBaseIn(
+        new BN(5 * LAMPORTS_PER_TOKEN), // amount in
+        new BN(1 * LAMPORTS_PER_TOKEN) // minimum amount out
+      )
+      .accounts({
+        // amm accounts
+        ammProgram: globalInfo.ammProgram,
+        amm: globalInfo.ammId,
+        ammAuthority: globalInfo.ammAuthority,
+        ammOpenOrders: globalInfo.ammOpenOrders,
+        ammCoinVault: globalInfo.coinVault,
+        ammPcVault: globalInfo.pcVault,
+        // market accounts
+        marketProgram: globalInfo.marketProgram,
+        market: globalInfo.marketId,
+        marketBids: marketInfo.bids,
+        marketAsks: marketInfo.asks,
+        marketEventQueue: marketInfo.eventQueue,
+        marketCoinVault: marketInfo.baseVault,
+        marketPcVault: marketInfo.quoteVault,
+        marketVaultSigner: marketInfo.ownAddress,
+        // user token accounts
+        userTokenSource: userARay,
+        userTokenDestination: userAUSDC,
+        userSourceOwner: userA.publicKey,
+        // orbitlen accounts
+        orbitlenAccount: userAOrbitlenAccount,
+        bank: RayBank, // coin bank
+        bankLiquidityVault: RayLiquidityVault,
+        bankLiquidityVaultAuthority: RayLiquidityVaultAuthority,
+        userCoinTokenAccount: userARay,
+        coinMint: globalInfo.coinMint,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .preInstructions([
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 1600000 }),
+      ])
+      .signers([userA])
+      .rpc();
+
+    console.log("tx", tx);
+  });
+
+  it("swap base out", async () => {
+    // check amm coin and pc balance
+    let coinVaultAmount = await getAccount(conn, globalInfo.coinVault);
+    console.log("coinVaultAmount", coinVaultAmount);
+
+    let pcVaultAmount = await getAccount(conn, globalInfo.pcVault);
+    console.log("pcVaultAmount", pcVaultAmount);
+    // check balance in coin、pc、lp, ensure sufficient coin and pc
+    let userAUSDCInfo = await getAccount(conn, userAUSDC);
+    console.log("userAUSDCInfo", userAUSDCInfo);
+
+    let userARayInfo = await getAccount(conn, userARay);
+    console.log("userARayInfo", userARayInfo);
+
+    let userALPInfo = await getAccount(conn, userALP);
+    console.log("userALPInfo", userALPInfo);
+
+    // USDC --> RAY
+    let tx = await program.methods
+      .raydiumSwapBaseIn(
+        new BN(50 * LAMPORTS_PER_TOKEN), // max amount in
+        new BN(10 * LAMPORTS_PER_TOKEN) // amount out
+      )
+      .accounts({
+        // amm accounts
+        ammProgram: globalInfo.ammProgram,
+        amm: globalInfo.ammId,
+        ammAuthority: globalInfo.ammAuthority,
+        ammOpenOrders: globalInfo.ammOpenOrders,
+        ammCoinVault: globalInfo.coinVault,
+        ammPcVault: globalInfo.pcVault,
+        // market accounts
+        marketProgram: globalInfo.marketProgram,
+        market: globalInfo.marketId,
+        marketBids: marketInfo.bids,
+        marketAsks: marketInfo.asks,
+        marketEventQueue: marketInfo.eventQueue,
+        marketCoinVault: marketInfo.baseVault,
+        marketPcVault: marketInfo.quoteVault,
+        marketVaultSigner: marketInfo.ownAddress,
+        // user token accounts
+        // userTokenSource: userARay,
+        // userTokenDestination: userAUSDC,
+        userTokenSource: userAUSDC,
+        userTokenDestination: userARay,
+        userSourceOwner: userA.publicKey,
+        // orbitlen accounts
+        orbitlenAccount: userAOrbitlenAccount,
+        bank: RayBank, // coin bank
+        bankLiquidityVault: RayLiquidityVault,
+        bankLiquidityVaultAuthority: RayLiquidityVaultAuthority,
+        userCoinTokenAccount: userARay,
+        coinMint: globalInfo.coinMint,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .preInstructions([
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 1600000 }),
+      ])
+      .signers([userA])
+      .rpc();
+
+    console.log("tx", tx);
   });
 });

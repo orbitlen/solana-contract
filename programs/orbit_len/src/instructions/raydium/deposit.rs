@@ -1,10 +1,16 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{ token::Token, token_interface::{ Mint, TokenAccount } };
+use anchor_spl::{
+    token::{ Token, ID as TOKEN_PROGRAM_ID },
+    token_interface::{ Mint, TokenAccount },
+};
 use raydium_amm_cpi::Deposit;
 use crate::{ constants::*, bank::*, account::*, error::*, events::* };
 
 #[derive(Accounts, Clone)]
-pub struct RaydiumDeposit<'info> {
+pub struct ProxyDeposit<'info> {
+    /**
+     * Raydium accounts
+     */
     /// CHECK: Safe
     pub amm_program: UncheckedAccount<'info>,
     /// CHECK: Safe. Amm Account
@@ -41,13 +47,16 @@ pub struct RaydiumDeposit<'info> {
     /// CHECK: Safe. User lp token, to deposit the generated tokens, user is the owner
     #[account(mut)]
     pub user_token_lp: UncheckedAccount<'info>,
+    /**
+     * Orbitlen accounts
+     */
     #[account(
         mut,
         seeds = [ORBITLEN_ACCOUNT_SEED.as_bytes(), user_owner.key().as_ref()],
         bump,
     )]
     pub orbitlen_account: AccountLoader<'info, OrbitlenAccount>,
-    #[account(mut)]
+    #[account(mint::decimals = COMMON_TOKEN_DECIMALS)]
     pub coin_mint: InterfaceAccount<'info, Mint>,
     #[account(
         mut,
@@ -75,19 +84,18 @@ pub struct RaydiumDeposit<'info> {
         bump = coin_bank.load()?.liquidity_vault_authority_bump,
     )]
     pub coin_bank_liquidity_vault_authority: AccountInfo<'info>,
-    /// CHECK: Safe. User wallet account
     #[account(mut)]
     pub user_owner: Signer<'info>,
-    /// CHECK: Safe. The spl token program
+    #[account(address = TOKEN_PROGRAM_ID)]
     pub token_program: Program<'info, Token>,
 }
 
-pub fn raydium_deposit_process<'info>(
-    ctx: Context<'_, '_, '_, 'info, RaydiumDeposit<'info>>,
+pub fn deposit_process<'info>(
+    ctx: Context<'_, '_, '_, 'info, ProxyDeposit<'info>>,
     coin_amount: u64,
     pc_amount: u64
 ) -> Result<()> {
-    let RaydiumDeposit {
+    let ProxyDeposit {
         orbitlen_account: orbitlen_account_loader,
         coin_bank_liquidity_vault,
         token_program,
